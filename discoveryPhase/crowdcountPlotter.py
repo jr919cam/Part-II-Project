@@ -28,4 +28,4 @@ for label in labels:
 plt.xlabel('ACP timestamp')
 plt.ylabel('LT1 crowd count')
 plt.tight_layout()
-plt.savefig('discoveryphase/plots/crowdCount24plot.png', format='png')
+plt.savefig('discoveryphase/plots/crowdcount24plot.png', format='png')
