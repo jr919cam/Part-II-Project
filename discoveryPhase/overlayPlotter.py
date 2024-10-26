@@ -1,14 +1,19 @@
 import matplotlib.pyplot as plt
-from co2Plotter import boundedHourMinuteStrings as co2x, boundedco2 as co2y, labels
-from crowdcountPlotter import boundedHourMinuteStrings as ccx, boundedCrowdCount as ccy
+from co2Plotter import getXYAndLabels as getXYAndLabelsco2
+from crowdcountPlotter import getXYAndLabels as getXYAndLabelsCrowdcount
+from density_calculator import getac0densities
+
+SENSOR = 'ac0'
 
 fig, ax1 = plt.subplots(figsize=(12,6))
-
-ax1.plot(ccx, ccy, color="r")
-ax1.set_ylabel('crowd count', color='r')
+ccx, ccy, labels, mask = getXYAndLabelsCrowdcount('24')
+y = getac0densities()
+ax1.plot(ccx, y[mask], color="r")
+ax1.set_ylabel('ac0 density', color='r')
 ax1.tick_params(axis='y', labelcolor='r') 
 
 ax2 = ax1.twinx()
+co2x, co2y, _ = getXYAndLabelsco2(SENSOR, '24')
 ax2.plot(co2x, co2y)
 ax2.set_xlabel('ACP timestamp')
 ax2.set_ylabel('co2 level', color='b')
@@ -18,4 +23,4 @@ plt.xticks(labels, rotation=45)
 for label in labels:
     plt.axvline(x=label, color='grey', linestyle='--', linewidth=0.5)
 plt.tight_layout()
-plt.savefig('discoveryphase/plots/overlay.png', format='png')
+plt.savefig(f'discoveryphase/plots/overlayPlots/overlay-{SENSOR}-density.png', format='png')

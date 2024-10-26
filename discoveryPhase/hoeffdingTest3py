@@ -1,0 +1,79 @@
+import json
+import numpy as np
+import pandas as pd
+from river import tree
+from river import metrics
+from river import preprocessing
+import matplotlib.pyplot as plt
+
+
+
+def main():
+    with open('jan2024SensorSample/elsys-co2-058ac6/01/elsys-co2-058ac6_2024-01-24.txt', 'r') as file:
+        ac6Data = [json.loads(dataLine) for dataLine in file]
+    ac6DataFrame = pd.DataFrame(ac6Data)
+    ac6Filtered = ac6DataFrame[ac6DataFrame['payload_cooked'].apply(lambda d: 'co2' in d)].reset_index(drop=True)
+    with open('node_22-28Jan/cerberus-node-lt1_2024-01-24.txt', 'r') as file:
+        nodeData = [json.loads(dataLine) for dataLine in file]
+    nodeDataFrame = pd.DataFrame(nodeData)
+    crowdAtTime = nodeDataFrame[['acp_ts', 'crowdcount']]
+    payloadCookedAtTime = ac6Filtered[['acp_ts', 'payload_cooked']]
+    i=0
+    j=0
+    combinedReadings = []
+    ncrowd = len(crowdAtTime)
+    npayload = len(payloadCookedAtTime)
+    ts = min(crowdAtTime['acp_ts'][i], payloadCookedAtTime['acp_ts'][j])
+    for _ in range(ncrowd + npayload):
+        combinedReadings.append({'acp_ts': ts, 'crowdcount': crowdAtTime['crowdcount'][i], 'co2': payloadCookedAtTime['payload_cooked'][j]['co2']})
+        if crowdAtTime['acp_ts'][i] <= payloadCookedAtTime['acp_ts'][j]:
+            i = min(i+1, ncrowd-1)
+            ts = crowdAtTime['acp_ts'][i]
+        else:
+            j = min(j+1, npayload-1)
+            ts = payloadCookedAtTime['acp_ts'][j]
+        print('loop', i, j)
+    print('exit')
+    # model = (
+    #     preprocessing.StandardScaler() |
+    #     tree.HoeffdingAdaptiveTreeRegressor()
+    # )
+    # metric = metrics.MAE()
+
+    # co2_preds=[combinedReadings[0]['co2']]
+    # for i in range(1, len(combinedReadings)):
+    #         x = {'co2': combinedReadings[i-1]['co2'], 'crowdcount': combinedReadings[i-1]['crowdcount']}
+    #         y = combinedReadings[i]['co2']
+
+    #         y_pred = model.predict_one(x)
+    #         model.learn_one(x, y)
+
+    #         metric.update(y, y_pred)
+    #         if y_pred is not None:
+    #             print(f'True: {y:.2f}, Predicted: {y_pred:.2f}, Error: {metric.get():.4f}')
+    #             co2_preds.append(y_pred)
+            
+        
+
+    # print(f'Final Mean Absolute Error (MAE): {metric.get():.4f}')
+    # co2 = [combinedReading['co2'] for combinedReading in combinedReadings]
+    # n_co2 = len(co2)
+    # x = np.linspace(float(combinedReadings[0]['acp_ts']), float(combinedReadings[-1]['acp_ts']))
+    plt.xticks([])
+    # plt.plot(x, co2, label="co2 level")
+    # plt.plot(x, co2_preds, color="r", label="predicted co2 level")
+    # plt.ylim(350, 600)
+    # plt.ylabel('AC6 sensor co2 levels')
+    # plt.legend()
+    # plt.text(0, -0.2, f'MAE = {metric.get()}', 
+    #     horizontalalignment='center', verticalalignment='center', 
+    #     transform=plt.gca().transAxes)
+    plt.tight_layout()
+    plt.savefig(f'discoveryphase/plots/hoeffdingplots/hoeffding_+crowdcount_co2t+1_pred.png', format='png')
+    print('saved')
+    plt.close()
+
+
+if __name__ == '__main__':
+    main()
+    
