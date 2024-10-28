@@ -28,6 +28,7 @@ class Course(Enum):
     How2writeD = 'How to write a dissertation'
     AdComArch = 'Advanced Computer Architecture'
     MLRD = 'Machine Learning and Real-world Data'
+    DNN = 'Deep Nueral Networks'
     HLogModC = 'Hoare Logic and Model Checking'
     IntDesign = 'Interaction Design'
     BusSeminrs = 'Business Seminars'
@@ -237,15 +238,135 @@ class ConciseTimetable():
         '23-05': Course.BusSeminrs.value,
         '29-05': Course.IntDesign.value,
     }
-    twelveToThirteen = {}
-    
-    timetable = {9:nineToTen, 10:tenToEleven, 11:elevenToTwelve, 12:twelveToThirteen}
+    twelveToThirteen = {
+        '11-10':Course.ProgC.value,
+        '22-10':Course.BioInfo.value,
+        '24-10':Course.BioInfo.value,
+        '29-10':Course.BioInfo.value,
+        '31-10':Course.BioInfo.value,
+        '01-11':Course.ProgC.value,
+        '04-11':Course.ProgC.value,
+        '05-11':Course.BioInfo.value,
+        '06-11':Course.ProgC.value,
+        '07-11':Course.BioInfo.value,
+        '08-11':Course.Semantics.value,
+        '11-11':Course.Semantics.value,
+        '12-11':Course.BioInfo.value,
+        '13-11':Course.Semantics.value,
+        '14-11':Course.BioInfo.value,
+        '15-11':Course.Semantics.value,
+        '18-11':Course.Semantics.value,
+        '19-11':Course.BioInfo.value,
+        '20-11':Course.Semantics.value,
+        '21-11':Course.BioInfo.value,
+        '22-11':Course.Semantics.value,
+        '25-11':Course.Semantics.value,
+        '26-11':Course.BioInfo.value,
+        '27-11':Course.Semantics.value,
+        '28-11':Course.BioInfo.value,
+        '29-11':Course.Semantics.value,
+        '02-12':Course.Semantics.value,
+        '04-11':Course.Semantics.value,
+        '24-01':Course.AdComArch.value,
+        '27-01':Course.AdComArch.value,
+        '29-01':Course.AdComArch.value,
+        '31-01':Course.AdComArch.value,
+        '03-02':Course.AdComArch.value,
+        '05-02':Course.AdComArch.value,
+        '07-02':Course.AdComArch.value,
+        '10-02':Course.AdComArch.value,
+        '12-02':Course.AdComArch.value,
+        '14-02':Course.AdComArch.value,
+        '17-02':Course.AdComArch.value,
+        '19-02':Course.AdComArch.value,
+        '21-02':Course.AdComArch.value,
+        '24-02':Course.AdComArch.value,
+        '26-02':Course.AdComArch.value,
+        '28-02':Course.AdComArch.value,
+        '01-05':Course.ForModLang.value,
+        '02-05':Course.ArtInt.value,
+        '05-05':Course.ArtInt.value,
+        '06-05':Course.ForModLang.value,
+        '07-05':Course.ArtInt.value,
+        '08-05':Course.ForModLang.value,
+        '09-05':Course.ArtInt.value,
+        '12-05':Course.ArtInt.value,
+        '13-05':Course.ForModLang.value,
+        '14-05':Course.ArtInt.value,
+        '15-05':Course.ForModLang.value,
+        '16-05':Course.ArtInt.value,
+        '19-05':Course.ArtInt.value,
+        '20-05':Course.ForModLang.value,
+        '21-05':Course.ArtInt.value,
+        '22-05':Course.ForModLang.value,
+        '23-05':Course.ArtInt.value,
+        '26-05':Course.ArtInt.value,
+        '27-05':Course.ForModLang.value,
+        '28-05':Course.ArtInt.value,
+    }
+    thirteenToFourteen = {
+        '08-11':Course.InfoTheo.value,
+        '11-11':Course.InfoTheo.value,
+        '12-11':Course.Databases.value,
+        '13-11':Course.InfoTheo.value,
+        '15-11':Course.InfoTheo.value,
+        '18-11':Course.InfoTheo.value,
+        '19-11':Course.Databases.value,
+        '20-11':Course.InfoTheo.value,
+        '22-11':Course.InfoTheo.value,
+        '25-11':Course.InfoTheo.value,
+        '26-11':Course.Databases.value,
+        '27-11':Course.InfoTheo.value,
+        '29-11':Course.InfoTheo.value,
+        '02-12':Course.InfoTheo.value,
+        '03-12':Course.Databases.value,
+        '04-12':Course.InfoTheo.value,
+    }
+    fourteenToFifteen = {
+        '23-10':Course.Library.value,
+        '24-01':Course.MLRD.value,
+        '28-01':Course.DNN.value,
+        '30-01':Course.DNN.value,
+        '31-01':Course.MLRD.value,
+        '04-02':Course.DNN.value,
+        '06-02':Course.DNN.value,
+        '07-02':Course.MLRD.value,
+        '11-02':Course.DNN.value,
+        '13-02':Course.DNN.value,
+        '14-02':Course.MLRD.value,
+        '18-02':Course.DNN.value,
+        '20-02':Course.DNN.value,
+        '21-02':Course.MLRD.value,
+        '25-02':Course.DNN.value,
+        '27-02':Course.DNN.value,
+        '28-02':Course.MLRD.value,
+        '04-03':Course.DNN.value,
+        '06-03':Course.DNN.value,
+        '07-03':Course.MLRD.value,
+        '11-03':Course.DNN.value,
+        '13-03':Course.DNN.value,
+        '14-03':Course.MLRD.value,
+        '29-05':Course.IIProject.value,
+
+    }
+    sixteenToSeventeen = {
+        '28-11':Course.SciComp.value,
+    }
+    timetable = {
+        9:nineToTen, 
+        10:tenToEleven, 
+        11:elevenToTwelve, 
+        12:twelveToThirteen, 
+        13:thirteenToFourteen,
+        14:fourteenToFifteen,
+        16:sixteenToSeventeen
+    }
 
     @staticmethod
-    def getStatus(acp_timestamp: float) -> tuple[str, str]:
+    def getCourse(acp_timestamp: float) -> str:
         '''
-        returns the current lecture course and repspective lecturer which are currently 
-        occupying LT1 for the 2024/25 academic year
+        returns the current lecture course which is currently occuring in 
+        LT1 for the 2024/25 academic year
 
         all lectures in LT1 occur on the hour and last for either 1 or 2 hours exactly
         '''
@@ -256,4 +377,17 @@ class ConciseTimetable():
         date = datetimeObj.strftime('%d-%m') # DD-MM
         hour = datetimeObj.hour # 0-23
 
-        # index by hour then date?
+        # index by hour then date
+        try:
+            course = ConciseTimetable.timetable[hour][date]
+            return course
+        except KeyError:
+            return "N/A"
+
+def main():
+    assert ConciseTimetable.getCourse(1739874600) == 'Further Human–Computer Interaction', 'wrong course'
+    assert ConciseTimetable.getCourse(1739874600) != 'other', 'not returning correctly'
+    assert ConciseTimetable.getCourse(1739910600) == 'N/A', 'Does not handle empty case'
+
+if __name__ == '__main__':
+    main()
