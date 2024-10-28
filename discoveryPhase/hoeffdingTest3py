@@ -13,10 +13,12 @@ def main():
         ac6Data = [json.loads(dataLine) for dataLine in file]
     ac6DataFrame = pd.DataFrame(ac6Data)
     ac6Filtered = ac6DataFrame[ac6DataFrame['payload_cooked'].apply(lambda d: 'co2' in d)].reset_index(drop=True)
+
     with open('node_22-28Jan/cerberus-node-lt1_2024-01-24.txt', 'r') as file:
         nodeData = [json.loads(dataLine) for dataLine in file]
     nodeDataFrame = pd.DataFrame(nodeData)
     crowdAtTime = nodeDataFrame[['acp_ts', 'crowdcount']]
+
     payloadCookedAtTime = ac6Filtered[['acp_ts', 'payload_cooked']]
     i=0
     j=0
@@ -33,46 +35,57 @@ def main():
             j = min(j+1, npayload-1)
             ts = payloadCookedAtTime['acp_ts'][j]
         print('loop', i, j)
-    print('exit')
-    # model = (
-    #     preprocessing.StandardScaler() |
-    #     tree.HoeffdingAdaptiveTreeRegressor()
-    # )
-    # metric = metrics.MAE()
+    model = (
+        preprocessing.StandardScaler() |
+        tree.HoeffdingAdaptiveTreeRegressor()
+    )
+    metric = metrics.MAE()
 
-    # co2_preds=[combinedReadings[0]['co2']]
-    # for i in range(1, len(combinedReadings)):
-    #         x = {'co2': combinedReadings[i-1]['co2'], 'crowdcount': combinedReadings[i-1]['crowdcount']}
-    #         y = combinedReadings[i]['co2']
+    co2_preds_current = []
+    co2_preds_10mins = []
+    for comb in combinedReadings:
+            print(comb)
+            x = {'acp_ts': float(comb['acp_ts']), 'crowdcount': comb['crowdcount']}
+            y = comb['co2']
 
-    #         y_pred = model.predict_one(x)
-    #         model.learn_one(x, y)
+            y_pred_current = model.predict_one(x)
+            x10min = {**x, 'acp_ts': float(x['acp_ts']) + 600}
+            y_pred_10min = model.predict_one(x10min)
+            model.learn_one(x, y)
 
-    #         metric.update(y, y_pred)
-    #         if y_pred is not None:
-    #             print(f'True: {y:.2f}, Predicted: {y_pred:.2f}, Error: {metric.get():.4f}')
-    #             co2_preds.append(y_pred)
-            
+            metric.update(y, y_pred_current)
+            if y_pred_current is not None:
+                co2_preds_current.append(y_pred_current)
+            if y_pred_10min is not None:
+                co2_preds_10mins.append(y_pred_10min)
+    processco2pred(co2_preds_current)  
         
 
-    # print(f'Final Mean Absolute Error (MAE): {metric.get():.4f}')
-    # co2 = [combinedReading['co2'] for combinedReading in combinedReadings]
-    # n_co2 = len(co2)
-    # x = np.linspace(float(combinedReadings[0]['acp_ts']), float(combinedReadings[-1]['acp_ts']))
+    print(f'Final Mean Absolute Error (MAE): {metric.get():.4f}')
+    co2 = [combinedReading['co2'] for combinedReading in combinedReadings]
+    n_co2 = len(co2)
+    x = np.linspace(float(combinedReadings[0]['acp_ts']), float(combinedReadings[-1]['acp_ts']), n_co2)
     plt.xticks([])
-    # plt.plot(x, co2, label="co2 level")
-    # plt.plot(x, co2_preds, color="r", label="predicted co2 level")
-    # plt.ylim(350, 600)
-    # plt.ylabel('AC6 sensor co2 levels')
-    # plt.legend()
-    # plt.text(0, -0.2, f'MAE = {metric.get()}', 
-    #     horizontalalignment='center', verticalalignment='center', 
-    #     transform=plt.gca().transAxes)
+    plt.figure(figsize=(15, 5))
+    plt.plot(x, co2, label="co2 level")
+    plt.plot(x, co2_preds_current, color="r", label="predicted co2 level", alpha=0.5)
+    plt.plot(x, co2_preds_10mins, color="g", label="predicted co2 level 10 mins", alpha=0.5)
+    plt.ylim(350, 600)
+    plt.ylabel('AC6 sensor co2 levels')
+    plt.legend()
+    plt.text(0, -0.2, f'MAE = {metric.get()}', 
+        horizontalalignment='center', verticalalignment='center', 
+        transform=plt.gca().transAxes)
     plt.tight_layout()
     plt.savefig(f'discoveryphase/plots/hoeffdingplots/hoeffding_+crowdcount_co2t+1_pred.png', format='png')
     print('saved')
     plt.close()
 
+
+def processco2pred(co2s):
+    for i in range(1, len(co2s)):
+        if co2s[i] < 350:
+            co2s[i] = co2s[i-1]
 
 if __name__ == '__main__':
     main()
