@@ -385,7 +385,8 @@ class ConciseTimetable():
             return "N/A"
 
 def main():
-    assert ConciseTimetable.getCourse(1739874600) == 'Further Human–Computer Interaction', 'wrong course'
+    assert ConciseTimetable.getCourse(1746437400) == 'Hoare Logic and Model Checking', 'fails for HL&MC'
+    assert ConciseTimetable.getCourse(1739874600) == 'Further Human–Computer Interaction', 'fails for FHCI'
     assert ConciseTimetable.getCourse(1739874600) != 'other', 'not returning correctly'
     assert ConciseTimetable.getCourse(1739910600) == 'N/A', 'Does not handle empty case'
 
