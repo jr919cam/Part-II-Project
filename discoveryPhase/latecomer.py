@@ -19,5 +19,6 @@ def main():
     
     for seat in order:
         print(seat, lateness[seat])
+
 if __name__ == '__main__':
     main()
