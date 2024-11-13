@@ -118,8 +118,61 @@ def plotMetricWithFaceDetectionFrequency(seat: str, sensor1: str, sensor2: str, 
 
     plt.savefig(f'discoveryPhase/plots/second-facevisibilityPlots/{seat}-{metric}-{sensor1}-{sensor2}-{day}.png', format='png') if isSaved else plt.show()
 
+def plotMultipleMetricWithFaceDetectionFrequency(seats: list[str], sensor1s: list[str], sensor2s: list[str], day: int, timeboundaries: tuple[float, float], isSaved=False, metric='co2', vlineBoundary=2):
+    seatTSs = {}
+    for seat in seats:
+        seatTSs[seat] = getSeatTS(seat, day, timeboundaries)
+        print('seatTS', seatTSs[seat])
+    sensor1Points = {}
+    for sensor1 in sensor1s:
+        sensor1Points[sensor1] = getSensorlevels(sensor1, day, timeboundaries, metric)
+    sensor2Points = {}
+    for sensor2 in sensor2s:
+        sensor2Points[sensor2] = getSensorlevels(sensor2, day, timeboundaries, metric)
+    closestSensorVals = {}
+    for seat, sensor1, sensor2 in zip(seats, sensor1s, sensor2s):
+        closestSensorVals[seat] = np.interp(seatTSs[seat], sensor2Points[sensor2][0], sensor2Points[sensor2][1]) if vlineBoundary == 2 else np.interp(seatTSs[seat], sensor1Points[sensor1][0], sensor1Points[sensor1][1])
+    
+    boundedNodeDF = getBoundedNodeDF(day, timeboundaries)
+    crowdcountTS, crowdcount = boundedNodeDF['acp_ts'], boundedNodeDF['crowdcount']
+
+    fig, axs = plt.subplots(5, 3, figsize=(25, 15))
+    fig.tight_layout(pad=5)
+    for ax, seat, sensor1, sensor2 in zip(axs.flat, seats, sensor1s, sensor2s):
+        ax.bar(seatTSs[seat], closestSensorVals[seat], width=5, align='center', color='black', alpha=0.75)
+
+        xticksTS = np.linspace(timeboundaries[0], timeboundaries[1], int((timeboundaries[1]-timeboundaries[0]) / 3600) * 2 + 1)
+        xticksLabels = np.array([datetime.fromtimestamp(tickTS).strftime('%H:%M') for tickTS in xticksTS])
+        ax.set_xticks(xticksTS)
+        ax.set_xticklabels(xticksLabels, rotation=60)
+        ax.set_xlim(timeboundaries)
+        ax.set_ylim(getMetricLim(metric))
+
+        ax.set_xlabel('ACP timestamp')
+        ax.set_ylabel(f'{metric} level')
+        ax.set_title(f'{seat} occupied, {metric} levels at {sensor1[-3:]} and {sensor2[-3:]}     ({day}/01/2024)')
+
+        ax.plot(sensor1Points[sensor1][0], sensor1Points[sensor1][1], color='w', linewidth=3)
+        ax.plot(sensor1Points[sensor1][0], sensor1Points[sensor1][1], color='r', label=f'{metric} at {sensor1[-3:]} (local)')
+    
+        ax.plot(sensor2Points[sensor2][0], sensor2Points[sensor2][1], color='w', linewidth=3)
+        ax.plot(sensor2Points[sensor2][0], sensor2Points[sensor2][1], color='g', label=f'{metric} at {sensor2[-3:]} (global)')
+        ax.legend(loc='upper right')
+
+        ax2 = ax.twinx()
+        ax2.plot(crowdcountTS, crowdcount, color='w', linewidth=3)
+        ax2.plot(crowdcountTS, crowdcount, color='orange', label='total crowdcount')
+        ax2.set_ylabel('total crowdcount')
+        ax2.set_ylim(0,150)
+        ax2.tick_params(axis='y')
+        ax2.legend(loc='upper left')
+
+    plt.savefig(f'discoveryPhase/plots/combinedFaceVisibilityPlots/{metric}-{day}.png', format='png') if isSaved else plt.show()
+
+
 if __name__ == '__main__':
     DAY = 24
-    timeboundarystart = datetime.strptime(f'2024-1-{DAY} 08:30:00', "%Y-%m-%d %H:%M:%S").timestamp()
-    timeboundaryend = datetime.strptime(f'2024-1-{DAY} 16:30:00', "%Y-%m-%d %H:%M:%S").timestamp()
-    plotMetricWithFaceDetectionFrequency('MD14', '058ac3', '058aef', day=DAY, timeboundaries=(timeboundarystart, timeboundaryend), isSaved=True, metric='temperature', vlineBoundary=1)
+    timeboundarystart = datetime.strptime(f'2024-1-{DAY} 9:30:00', "%Y-%m-%d %H:%M:%S").timestamp()
+    timeboundaryend = datetime.strptime(f'2024-1-{DAY} 13:30:00', "%Y-%m-%d %H:%M:%S").timestamp()
+    plotMultipleMetricWithFaceDetectionFrequency(['MD14'], ['058ae4'], ['058ae3'], day=DAY, timeboundaries=(timeboundarystart, timeboundaryend), isSaved=True, metric='temperature', vlineBoundary=1)
+
