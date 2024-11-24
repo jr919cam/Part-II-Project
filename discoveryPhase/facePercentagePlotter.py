@@ -25,7 +25,7 @@ class MetricReadingError(Exception):
         self.message = message
         super().__init__(self.message)
 
-SENSOR_NEAREST_SEATS = {
+NEAREST_SEATS_BY_SENSOR = {
     '058bl2':['LH1', 'LH2', 'LI1'],
     '0559f3':['LH6', 'LH5', 'LI6', 'LI5'],
     '0520a5':['LE6', 'LF6', 'LE5', 'LF5'],
@@ -49,10 +49,10 @@ SENSOR_NEAREST_SEATS = {
     '058ac2':['RB6', 'RB5'],
     }
 
-LOCAL_SEATS_SENSOR = {}
-for sensor in SENSOR_NEAREST_SEATS:
-    for seat in SENSOR_NEAREST_SEATS[sensor]:
-        LOCAL_SEATS_SENSOR[seat] = sensor
+NEAREST_SENSOR_BY_SEAT = {}
+for sensor in NEAREST_SEATS_BY_SENSOR:
+    for seat in NEAREST_SEATS_BY_SENSOR[sensor]:
+        NEAREST_SENSOR_BY_SEAT[seat] = sensor
 
 def getMetricLim(metric):
     if metric == 'co2':
@@ -86,12 +86,12 @@ def getSeatTS(seat, day, timeboundaries):
     seatTS = targetSeatDF['acp_ts'] 
     return seatTS
 
-def getSeatTSDensityPoints(seatTS):
+def getSeatTSDensityPoints(seatTS, timeboundaries):
     seatTS = seatTS.to_numpy().reshape(-1, 1)
-    TSRange = np.linspace(seatTS.min(), seatTS.max(), len(seatTS)).reshape(-1, 1)
-    kde = KernelDensity(kernel='exponential', bandwidth=100).fit(seatTS)
-    log_density = kde.score_samples(TSRange)
-    return TSRange, log_density
+    kde = KernelDensity(kernel='gaussian', bandwidth=7.5).fit(seatTS)
+    ts_samples = np.linspace(timeboundaries[0], timeboundaries[1], 500).reshape(-1,1)
+    density = np.exp(kde.score_samples(ts_samples))
+    return ts_samples, density
 
 def getSeatCounts(day, timeboundaries):
     boundedNodeDF = getBoundedNodeDF(day, timeboundaries)
@@ -172,18 +172,20 @@ def plotMetricWithFaceDetectionFrequency(seat: str, sensor1: str, sensor2: str, 
 def getSensor1Points(sensor1s, day, timeboundaries, metric, num_plots):
     sensor1Points = {}
     acceptedSensor1s = []
+    acceptedSensorIndecies = []
     i = 0
-    for sensor1 in sensor1s:
+    for j, sensor1 in enumerate(sensor1s):
         try:
             sensor1Points[sensor1] = getSensorlevels(sensor1, day, timeboundaries, metric)
             acceptedSensor1s.append(sensor1)
+            acceptedSensorIndecies.append(j)
             i += 1
         except MetricReadingError:
             print(f'no {metric} reading for {sensor1}, trying next sensor')
             continue
         if i >= num_plots:
             break
-    return sensor1Points, acceptedSensor1s
+    return sensor1Points, acceptedSensor1s, acceptedSensorIndecies
 
 def plotMultipleMetricWithFaceDetectionFrequency(
         seats: list[str], 
@@ -197,20 +199,21 @@ def plotMultipleMetricWithFaceDetectionFrequency(
         num_plots=15, 
         isDensity=False
     ):
-    seatTSs = {}
-    for seat in seats:
-        seatTSs[seat] = getSeatTS(seat, day, timeboundaries)
-    sensor1Points, acceptedSensor1s = getSensor1Points(sensor1s, day, timeboundaries, metric, num_plots)
+    sensor1Points, acceptedSensor1s, acceptedSensor1Indecies = getSensor1Points(sensor1s, day, timeboundaries, metric, num_plots)
     sensor2Points = {}
     for sensor2 in sensor2s:
         sensor2Points[sensor2] = getSensorlevels(sensor2, day, timeboundaries, metric)
+    seatTSs = {}
+    acceptedSeats = [seats[i] for i in acceptedSensor1Indecies]
+    for seat in acceptedSeats:
+        seatTSs[seat] = getSeatTS(seat, day, timeboundaries)
     
     boundedNodeDF = getBoundedNodeDF(day, timeboundaries)
     crowdcountTS, crowdcount = boundedNodeDF['acp_ts'], boundedNodeDF['crowdcount']
 
     fig, axs = plt.subplots(6, 3, figsize=(43, 27))
     fig.tight_layout(w_pad=15, h_pad=10)
-    for ax, seat, sensor1, sensor2 in zip(axs.flat, seats, acceptedSensor1s, sensor2s):
+    for ax, seat, sensor1, sensor2 in zip(axs.flatten(), acceptedSeats, acceptedSensor1s, sensor2s):
 
         xticksTS = np.linspace(timeboundaries[0], timeboundaries[1], int((timeboundaries[1]-timeboundaries[0]) / 3600) * 2 + 1)
         xticksLabels = np.array([datetime.fromtimestamp(tickTS).strftime('%H:%M') for tickTS in xticksTS])
@@ -223,33 +226,34 @@ def plotMultipleMetricWithFaceDetectionFrequency(
         ax.set_ylabel(f'{metric} level')
         ax.set_title(f'{seat} occupancy density, {metric} levels at {sensor1[-3:]} and {sensor2[-3:]}     ({day}/01/2024)')
 
-        ax.plot(sensor1Points[sensor1][0], sensor1Points[sensor1][1], color='w', linewidth=3)
-        ax.plot(sensor1Points[sensor1][0], sensor1Points[sensor1][1], color='r', label=f'{metric} at {sensor1[-3:]} (local)')
+        axDensity = ax.twinx()
+        axDensity.set_xlim(timeboundaries[0], timeboundaries[1])
+        axDensity.set_yticks([])
+        axDensity.set_yticklabels([])
+        if isDensity:
+            x, y = getSeatTSDensityPoints(seatTSs[seat], timeboundaries)
+            axDensity.plot(x, y, color='black', label=f'seat occupancy density', zorder=-10)
+        else:
+            axDensity.set_ylim(getMetricLim(metric))
+            closestSensorVals = np.interp(seatTSs[seat], sensor2Points[sensor2][0], sensor2Points[sensor2][1]) if vlineBoundary == 2 else np.interp(seatTSs[seat], sensor1Points[sensor1][0], sensor1Points[sensor1][1])
+            axDensity.bar(seatTSs[seat], closestSensorVals, width=5, align='center', color='black', alpha=0.5)
+
+        ax.plot(sensor1Points[sensor1][0], sensor1Points[sensor1][1], color='w', linewidth=3, zorder=2)
+        ax.plot(sensor1Points[sensor1][0], sensor1Points[sensor1][1], color='r', label=f'{metric} at {sensor1[-3:]} (local)', zorder=3)
     
-        ax.plot(sensor2Points[sensor2][0], sensor2Points[sensor2][1], color='w', linewidth=3)
-        ax.plot(sensor2Points[sensor2][0], sensor2Points[sensor2][1], color='g', label=f'{metric} at {sensor2[-3:]} (global)')
+        ax.plot(sensor2Points[sensor2][0], sensor2Points[sensor2][1], color='w', linewidth=3, zorder=2)
+        ax.plot(sensor2Points[sensor2][0], sensor2Points[sensor2][1], color='g', label=f'{metric} at {sensor2[-3:]} (global)', zorder=3)
 
         ax2 = ax.twinx()
-        ax2.plot(crowdcountTS, crowdcount, color='w', linewidth=3)
-        ax2.plot(crowdcountTS, crowdcount, color='orange', label='total crowdcount')
+        ax2.plot(crowdcountTS, crowdcount, color='w', linewidth=3, zorder=2)
+        ax2.plot(crowdcountTS, crowdcount, color='orange', label='total crowdcount', zorder=3)
         ax2.set_ylabel('total crowdcount')
         ax2.set_ylim(0,150)
         ax2.tick_params(axis='y')
 
-        if isDensity:
-            ax3 = ax.twinx()
-            x, y = getSeatTSDensityPoints(seatTSs[seat])
-            ax3.plot(x, y, color='black', label=f'seat occupancy density')
-            ax3.set_yticks([])
-            ax3.set_yticklabels([])
-        else:
-            closestSensorVals = {}
-            for seat, sensor1, sensor2 in zip(seats, acceptedSensor1s, sensor2s):
-                closestSensorVals[seat] = np.interp(seatTSs[seat], sensor2Points[sensor2][0], sensor2Points[sensor2][1]) if vlineBoundary == 2 else np.interp(seatTSs[seat], sensor1Points[sensor1][0], sensor1Points[sensor1][1])
-            ax.bar(seatTSs[seat], closestSensorVals[seat], width=5, align='center', color='black', alpha=0.75)
         handles1, labels1 = ax.get_legend_handles_labels()
         handles2, labels2 = ax2.get_legend_handles_labels()
-        handles3, labels3 = ax3.get_legend_handles_labels()
+        handles3, labels3 = axDensity.get_legend_handles_labels()
         handles = handles1 + handles2 + handles3
         labels = labels1 + labels2 + labels3
         ax.legend(handles, labels, loc='upper left')
@@ -269,23 +273,20 @@ def plotMultipleFaceDetectionFrequencyWithMetric(
     ):
     faceDetectionSeatCounts = getSeatCounts(day, timeboundaries)
     sortedFaceDetectionSeats = sorted(faceDetectionSeatCounts, key=faceDetectionSeatCounts.get, reverse=True)
-    near_seats = [seat for seats in SENSOR_NEAREST_SEATS.values() for seat in seats]
+    near_seats = [seat for seats in NEAREST_SEATS_BY_SENSOR.values() for seat in seats]
+
     faceDetectionSeatsNearSensors = []
     for seat in sortedFaceDetectionSeats:
         if seat in near_seats:
             faceDetectionSeatsNearSensors.append(seat)
-    if day > 22:
-        faceDetectionSeatsNearSensors = list(filter(lambda x: LOCAL_SEATS_SENSOR[x] != '058ae2', faceDetectionSeatsNearSensors))
-    if day > 24:
-        faceDetectionSeatsNearSensors = list(filter(lambda x: LOCAL_SEATS_SENSOR[x] != '058ac9', faceDetectionSeatsNearSensors))
-    sensor1s = [LOCAL_SEATS_SENSOR[seat] for seat in faceDetectionSeatsNearSensors]
-    sensor2s = ['058ae3'] * 18
-    plotMultipleMetricWithFaceDetectionFrequency(faceDetectionSeatsNearSensors[:18], sensor1s, sensor2s, day, timeboundaries, isSaved, metric, vlineBoundary, num_plots, isDensity=isDensity)
+    sensor1s = [NEAREST_SENSOR_BY_SEAT[seat] for seat in faceDetectionSeatsNearSensors]
+    sensor2s = ['058ae3'] * num_plots
+    plotMultipleMetricWithFaceDetectionFrequency(faceDetectionSeatsNearSensors, sensor1s, sensor2s, day, timeboundaries, isSaved, metric, vlineBoundary, num_plots, isDensity=isDensity)
 
 
 
 if __name__ == '__main__':
-    DAY = 24
+    DAY = 22
     timeboundarystart = datetime.strptime(f'2024-1-{DAY} 8:30:00', "%Y-%m-%d %H:%M:%S").timestamp()
     timeboundaryend = datetime.strptime(f'2024-1-{DAY} 13:30:00', "%Y-%m-%d %H:%M:%S").timestamp()
-    plotMultipleFaceDetectionFrequencyWithMetric(day=DAY, timeboundaries=(timeboundarystart, timeboundaryend), isSaved=True, metric='temperature', vlineBoundary=2, num_plots=18, isDensity=True)
+    plotMultipleFaceDetectionFrequencyWithMetric(day=DAY, timeboundaries=(timeboundarystart, timeboundaryend), isSaved=True, metric='co2', vlineBoundary=2, num_plots=18, isDensity=True)
