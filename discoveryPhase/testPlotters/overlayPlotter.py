@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
-from co2Plotter import getXYAndLabels as getXYAndLabelsco2
-from crowdcountPlotter import getXYAndLabels as getXYAndLabelsCrowdcount
-from density_calculator import getac0densities
+from discoveryPhase.testPlotters.co2Plotter import getXYAndLabels as getXYAndLabelsco2
+from discoveryPhase.testPlotters.crowdcountPlotter import getXYAndLabels as getXYAndLabelsCrowdcount
+from discoveryPhase.testUtils.density_calculator import getac0densities
 
 SENSOR = 'ac0'
 def main():

@@ -1,13 +1,6 @@
 def getac0densities():    
     '''
-    lecture theatre modelled as 32 * 24 matrix
-
-    max number of rows is 12, however every even row is there to account for space of desk (thus 24)
-    left side has 6, right has 6, and centre has 14 seats/row
-    to account for empty space of walkways, add 2*3 seats 
-    therefore total width = 6+6+14+6 = 32
-
-    see diagram for visual representation - black = seats, yellow = desk, white = empty
+    get the person density (num of detected people in the 3*3 area) around sensor ac0
     '''
     import json
     import numpy as np

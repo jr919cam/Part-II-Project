@@ -11,10 +11,9 @@ def main():
 
 def getEvents(startTime: float, endTime: float, seats: list[str] = []):
     '''
-        hardcoded date and time period
-
-        script which measures any change in seat occupancy given a selection of seats and time boundaries
-        gives timestamps for each event
+       get the events of a list of seats. In this test, an event is defined as the seat occupancy appearing or disappearing. 
+       Appearing is when the seat wasn't in the previous node reading but is now.
+       Disappearing the opposite.
     '''
     with open('node_22-28Jan/cerberus-node-lt1_2024-01-24.txt', 'r') as file:
         nodeData = [json.loads(dataLine) for dataLine in file]

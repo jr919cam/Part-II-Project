@@ -1,13 +1,3 @@
-'''
-
-need to be able to select a seat and some selected CO2 sensors
-
-with selected seat plot any positive detections as black lines and any negative detections as nothing
-
-then plot the CO2 over time for the same time period for a sensor at the back of the room and near to the selected seat.
-
-'''
-
 from datetime import datetime
 import json
 import matplotlib.pyplot as plt
@@ -20,17 +10,18 @@ import sys
 np.set_printoptions(threshold=sys.maxsize)
 
 class MetricReadingError(Exception):
-    
-    def __init__(self, message):
-        self.message = message
-        super().__init__(self.message)
+    '''
+        Exception raised when there is no reading of a specific metric in a given file
+    '''
+    pass
 
+# selection of nearest seats to the sensors
 NEAREST_SEATS_BY_SENSOR = {
     '058bl2':['LH1', 'LH2', 'LI1'],
     '0559f3':['LH6', 'LH5', 'LI6', 'LI5'],
     '0520a5':['LE6', 'LF6', 'LE5', 'LF5'],
     '058ae6':['LB1', 'LC1', 'LB2', 'LC2'],
-    '058ae2':['MH1', 'MH2', 'MI1', 'MI2'], # max 22nd
+    '058ae2':['MH1', 'MH2', 'MI1', 'MI2'], # max day 22nd in sample
     '058ac8':['MC1', 'MC2', 'MD1', 'MD2'],
     '058b15':['MA3', 'MA4', 'MB3', 'MB4'],
     '058b19':['MF4', 'MF5', 'MG4', 'MG5'],
@@ -39,7 +30,7 @@ NEAREST_SEATS_BY_SENSOR = {
     '058ae4':['MF10', 'MF11', 'MG10', 'MG11'],
     '058b11':['MA11', 'MA12', 'MB11', 'MB12'],
     '058ae7':['MH13', 'MH14', 'MI13', 'MI14'],
-    '058ac9':['ME13', 'ME14', 'MF13', 'MF14'], # max 24th
+    '058ac9':['ME13', 'ME14', 'MF13', 'MF14'], # max day 24th in sample
     '058ac3':['MC13', 'MC14', 'MD13', 'MD14'],
     '0559f2':['RH1', 'RG1'],
     '058b13':['RH6', 'RG6'],
@@ -49,12 +40,20 @@ NEAREST_SEATS_BY_SENSOR = {
     '058ac2':['RB6', 'RB5'],
     }
 
+# each seat's nearest sensor given by NEAREST_SEATS_BY_SENSOR
 NEAREST_SENSOR_BY_SEAT = {}
 for sensor in NEAREST_SEATS_BY_SENSOR:
     for seat in NEAREST_SEATS_BY_SENSOR[sensor]:
         NEAREST_SENSOR_BY_SEAT[seat] = sensor
 
-def getMetricLim(metric):
+def getMetricLim(metric: str) -> tuple[int, int]:
+    '''
+        returns basic y limits for given metrics when plotting
+        Args:
+            metric: metric of interest from sensor (e.g. 'co2')
+        Returns:
+            (ylim_lo, ylim_hi): y limits
+    '''
     if metric == 'co2':
         return 300, 750
     if metric == 'temperature':
@@ -62,12 +61,21 @@ def getMetricLim(metric):
     else:
         return 0, 0
 
-def getBoundedNodeDF(day, timeboundaries):
+def getBoundedNodeDF(day: int, timeboundaries: tuple[str, str]) -> pd.DataFrame:
+    '''
+        for a given day and bounding timestamps, fetch the data from node which was published between the given times
+        Args:
+            day: the given day of interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+        Returns:
+            seatTS: dataframe containing node readings between the timeboundaries on the given day
+    '''
+    
     with open(f'node_22-28Jan/cerberus-node-lt1_2024-01-{day}.txt', 'r') as file:
         nodeData = [json.loads(dataLine) for dataLine in file]
     nodeDataFrame = pd.DataFrame(nodeData)   
 
-    # display full ts to 10dp
+    # display full ts to 10dp for debugging purposes
     pd.set_option('display.float_format', '{:.10f}'.format)
     nodeDataFrame['acp_ts'] = pd.to_numeric(nodeDataFrame['acp_ts'])
 
@@ -77,7 +85,17 @@ def getBoundedNodeDF(day, timeboundaries):
     return boundedNodeDF    
 
 
-def getSeatTS(seat, day, timeboundaries):
+def getSeatTS(seat: str, day:str, timeboundaries:tuple[str, str]) -> pd.Series:
+    '''
+        for a given seat, day and bounding timestamps, gets the timestamps of whenever that seat was detected to be occupied
+        Args:
+            seat: the given seat of interest
+            day: the given day of interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+        Returns:
+            seatTS: timestamp series of when the seat was detected to be occupied by node
+    '''
+
     # first get df of times selected
     boundedNodeDF : pd.DataFrame = getBoundedNodeDF(day, timeboundaries)
 
@@ -86,7 +104,15 @@ def getSeatTS(seat, day, timeboundaries):
     seatTS = targetSeatDF['acp_ts'] 
     return seatTS
 
-def getSeatTSDensityPoints(seatTS, timeboundaries):
+def getSeatTSDensityPointsKDE(seatTS: pd.Series, timeboundaries: tuple[str, str]) -> tuple[np.ndarray, np.ndarray]:
+    '''
+        estimates the density function of seat occupancy timestamps using kernel density estimation
+        Args:
+            seatTS: the timestamps of detected occupancy for a given seat
+            timeboundaries: tuple of earliest and latest allowed timestamps
+        Returns:
+            (ts_samples, density): the x and y values for the estimated function
+    '''
     seatTS = seatTS.to_numpy().reshape(-1, 1)
     kde = KernelDensity(kernel='gaussian', bandwidth=0.2).fit(seatTS)
     ts_samples = np.linspace(timeboundaries[0], timeboundaries[1], len(seatTS)*10)
@@ -94,37 +120,58 @@ def getSeatTSDensityPoints(seatTS, timeboundaries):
     density = np.exp(kde.score_samples(ts_samples_2d))
     return ts_samples, density
 
-def getSeatTSDensityPointsEMA(timestamps, alpha=0.2):
-    intervals = np.diff(timestamps) + 0.05
-    print(timestamps[:20])
-    print(intervals[:19])
+def getSeatTSDensityPointsEMA(seatTS: pd.Series, alpha=0.2) -> np.ndarray:
+    '''
+        estimates the density function of seat occupancy timestamps using exponential mean average
+        Args:
+            seatTS: the timestamps of detected occupancy for a given seat
+            alpha: smoothing factor of EMA
+        Returns:
+            EMAdensity: y values for the estimated function
+    '''
+    intervals = np.diff(seatTS) + 0.05
     densities = 1 / intervals
     emaDensity = [0]
     for i in range(0, len(densities)):
         ema = alpha * densities[i] + (1 - alpha) * emaDensity[-1]
         emaDensity.append(ema)
-    return emaDensity
+    return np.array(emaDensity)
 
-def getSeatCounts(day, timeboundaries):
+def getSeatCounts(day: int, timeboundaries: tuple[str, str]) -> defaultdict[str, int]:
+    '''
+        gets the total number of occupancy counts for every seat on a given day between given time boundaries
+        Args:
+            day: the given day of interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+        Returns:
+            seatCounts: dictionary of seats mapped to their total counts for the given time period
+    '''
     boundedNodeDF = getBoundedNodeDF(day, timeboundaries)
     seatCounts = defaultdict(int)
-
     for _, row in boundedNodeDF.iterrows():
         for seat in row['seats_occupied']:
             seatCounts[seat] += 1
     return seatCounts
 
-def getSensorlevels(sensor, day, timeboundaries, metric):
-    # set up dataframe
+def getSensorlevels(sensor: str, day: int, timeboundaries: tuple[str, str], metric: str) -> tuple[pd.Series, np.ndarray]:
+    '''
+        get the readings of a given sensor in a given timeperiod for a given metric
+        Args:
+            sensor: the sensor of interest
+            day: the given day of interest 
+            timeboundaries: tuple of earliest and latest allowed timestamps
+            metric: metric of interest from sensor (e.g. 'co2')
+        Returns:
+            (sensorTS, sensorReadings): a tuple containing the metric levels of the sensor and the timestamps at which they were recieved
+    '''
+
     with open(f'jan2024SensorSample/elsys-co2-{sensor}/01/elsys-co2-{sensor}_2024-01-{day}.txt', 'r') as file:
         sensorData = [json.loads(dataLine) for dataLine in file]
     sensorDataFrame = pd.DataFrame(sensorData)
 
-    # display full ts to 10dp
     pd.set_option('display.float_format', '{:.10f}'.format)
     sensorDataFrame['acp_ts'] = pd.to_numeric(sensorDataFrame['acp_ts'])
-    
-    # bound the data with co2 values in
+
     sensorDataFrameFiltered = sensorDataFrame[sensorDataFrame['payload_cooked'].apply(lambda x: metric in x)]
     if len(sensorDataFrameFiltered) == 0:
         raise MetricReadingError(f"No values of {metric} for {sensor} on this day")
@@ -134,7 +181,19 @@ def getSensorlevels(sensor, day, timeboundaries, metric):
     return sensorDataFrameTsBound['acp_ts'], np.array([payload[metric] for payload in sensorDataFrameTsBound['payload_cooked']])
 
 
-def plotMetricWithFaceDetectionFrequency(seat: str, sensor1: str, sensor2: str, day: int, timeboundaries: tuple[float, float], isSaved=False, metric='co2', vlineBoundary=2):
+def plotMetricWithBarcode(seat: str, sensor1: str, sensor2: str, day: int, timeboundaries: tuple[float, float], isSaved=False, metric='co2', vlineBoundary=2) -> None:
+    '''
+        plots a seat detection barcode plot containing the local and global sensor values and total crowdcount timeseries
+        Args:
+            seat: seat of given interest
+            sensor1: the local sensor
+            sensor2: the global sensor
+            day: the day of given interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+            isSaved: whether or not the plot will be saved to the repo or simply displayed
+            metric: metric of interest from sensor (e.g. 'co2')
+            vLineBoundary: which timeseries the barcode lines height matches
+    '''
     seatTS = getSeatTS(seat, day, timeboundaries)
     print('seatTS', seatTS)
     sensor1TS, sensor1Levels = getSensorlevels(sensor1, day, timeboundaries, metric)
@@ -179,27 +238,40 @@ def plotMetricWithFaceDetectionFrequency(seat: str, sensor1: str, sensor2: str, 
     ax2.tick_params(axis='y')
     ax2.legend(loc='upper left')
 
-    plt.savefig(f'discoveryPhase/plots/second-facevisibilityPlots/{seat}-{metric}-{sensor1}-{sensor2}-{day}.png', format='png') if isSaved else plt.show()
+    plt.savefig(f'discoveryPhase/plots/barcodePlots/second-facevisibilityPlots/{seat}-{metric}-{sensor1}-{sensor2}-{day}.png', format='png') if isSaved else plt.show()
 
-def getSensor1Points(sensor1s, day, timeboundaries, metric, num_plots):
+def getSensor1Points(sensor1s: list[str], day:int, timeboundaries:tuple[str, str], metric: str, num_plots: int) -> tuple[dict[str, tuple[pd.Series, np.ndarray]], list[str], list[int]]:
+    '''
+        get the x and y values for a list of local sensors handling any cases where there are no readings for the given metric
+        Args:
+            sensor1s: the list of local sensors to take readings from if data is available
+            day: day of given interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+            metric: metric of interest from sensor (e.g. 'co2')
+            num_plots: the amount of graphs being plotted
+        Returns:
+            sensor1Points: dict mapping a local sensor to its readings for the given metric
+            acceptedSensor1s: the list of local sensors which had readings for the given metric
+            acceptedSensorIndexes: list of indexes of sensor1s which were accepted
+    '''
     sensor1Points = {}
     acceptedSensor1s = []
-    acceptedSensorIndecies = []
+    acceptedSensorIndexes = []
     i = 0
     for j, sensor1 in enumerate(sensor1s):
         try:
             sensor1Points[sensor1] = getSensorlevels(sensor1, day, timeboundaries, metric)
             acceptedSensor1s.append(sensor1)
-            acceptedSensorIndecies.append(j)
+            acceptedSensorIndexes.append(j)
             i += 1
         except MetricReadingError:
             print(f'no {metric} reading for {sensor1}, trying next sensor')
             continue
         if i >= num_plots:
             break
-    return sensor1Points, acceptedSensor1s, acceptedSensorIndecies
+    return sensor1Points, acceptedSensor1s, acceptedSensorIndexes
 
-def plotMultipleMetricWithFaceDetectionFrequency(
+def plotMultipleMetricWithBarcodeGivenTargets(
         seats: list[str], 
         sensor1s: list[str], 
         sensor2s: list[str], 
@@ -210,7 +282,21 @@ def plotMultipleMetricWithFaceDetectionFrequency(
         vlineBoundary=2, 
         num_plots=15, 
         isDensity=False
-    ):
+    ) -> None:
+    '''
+        plots a collection of seat detection barcode plots containing the local and global sensor values and total crowdcount timeseries given target seats and sensors
+        Args:
+            seat: seat of given interest
+            sensor1s: the local sensors
+            sensor2s: the global sensors
+            day: the day of given interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+            isSaved: whether or not the plot will be saved to the repo or simply displayed
+            metric: metric of interest from sensor (e.g. 'co2')
+            vLineBoundary: which timeseries the barcode lines height matches
+            num_plots: the number of plots in the full image
+            isDensity: whether or not the barcode lines should be replaced by their estimated density function
+    '''
     sensor1Points, acceptedSensor1s, acceptedSensor1Indecies = getSensor1Points(sensor1s, day, timeboundaries, metric, num_plots)
     sensor2Points = {}
     for sensor2 in sensor2s:
@@ -242,7 +328,7 @@ def plotMultipleMetricWithFaceDetectionFrequency(
         axDensity.set_yticks([])
         axDensity.set_yticklabels([])
         if isDensity:
-            x, y = getSeatTSDensityPoints(seatTSs[seat], timeboundaries)
+            x, y = getSeatTSDensityPointsKDE(seatTSs[seat], timeboundaries)
             x_interp = np.linspace(timeboundaries[0], timeboundaries[1], 1000)
             y_interp = np.interp(x_interp, x, y)
             axDensity.plot(x_interp, y_interp, color='black', label=f'seat occupancy density', zorder=-10)
@@ -270,12 +356,12 @@ def plotMultipleMetricWithFaceDetectionFrequency(
         handles = handles1 + handles2 + handles3
         labels = labels1 + labels2 + labels3
         ax.legend(handles, labels, loc='upper left')
-    save_path = f'discoveryPhase/plots/combinedFaceVisibilityPlots3/{metric}-{day}'
+    save_path = f'discoveryPhase/plots/combinedBarcodePlots/combinedFaceVisibilityPlots3/{metric}-{day}'
     if isDensity:
         save_path += '-density'
     plt.savefig(save_path + '.png', format='png') if isSaved else plt.show()
 
-def plotMultipleFaceDetection(
+def plotMultipleBarcodeGivenSeats(
         seats: list[str], 
         day: int, 
         timeboundaries: tuple[float, float], 
@@ -283,7 +369,19 @@ def plotMultipleFaceDetection(
         isDensity=False,
         isEMA=False,
         isCombined=False
-    ):
+    ) -> None:
+    '''
+        plots 3 seat detection barcode plots containing the total crowdcount timeseries given the seats of interest
+        Args:
+            seats: seat of given interest
+            day: the day of given interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+            isSaved: whether or not the plot will be saved to the repo or simply displayed
+            isDensity: whether or not the barcode lines should be replaced by their estimated density function
+            isEMA: whether EMA or KDE will be used for the density estimation function
+            isCombined: whether or not both density and barcodes will be plotted
+    '''
+
     seatTSs = {}
     for seat in seats:
         seatTSs[seat] = getSeatTS(seat, day, timeboundaries)
@@ -312,7 +410,7 @@ def plotMultipleFaceDetection(
                 x = seatTSs[seat]
                 y = getSeatTSDensityPointsEMA(seatTSs[seat])
             else:
-                x, y = getSeatTSDensityPoints(seatTSs[seat], timeboundaries)
+                x, y = getSeatTSDensityPointsKDE(seatTSs[seat], timeboundaries)
             axDensity.plot(x, y, color='black', label=f'seat occupancy density', zorder=-10)
             
             if isCombined:
@@ -339,7 +437,7 @@ def plotMultipleFaceDetection(
         handles = handles1 + handles2 + handles3
         labels = labels1 + labels2 + labels3
         ax.legend(handles, labels, loc='upper left')
-    save_path = f'discoveryPhase/plots/combinedFaceVisibilityPlots4/{day}'
+    save_path = f'discoveryPhase/plots/combinedBarcodePlots/combinedFaceVisibilityPlots4/{day}'
     if isCombined:
         save_path += '-single-combined-interval-EMA'
     elif isDensity:
@@ -349,12 +447,18 @@ def plotMultipleFaceDetection(
     plt.savefig(save_path + '.png', format='png') if isSaved else plt.show()
 
 def filterae2(day, seat):
+    '''
+        filter function to remove sensor 058ae2 if the day is greater than 22
+    '''
     return not (NEAREST_SENSOR_BY_SEAT[seat] == '058ae2' and day > 22)
 
 def filterac9(day, seat):
+    '''
+        filter function to remove sensor 058ac9 if the day is greater than 24
+    '''
     return not (NEAREST_SENSOR_BY_SEAT[seat] == '058ac9' and day > 24)
 
-def plotMultipleFaceDetectionFrequencyWithMetric(
+def plotMultipleMetricWithBarcode(
         day: int, 
         timeboundaries: tuple[float, float], 
         isSaved=False, 
@@ -363,6 +467,17 @@ def plotMultipleFaceDetectionFrequencyWithMetric(
         num_plots=15, 
         isDensity=False
     ):
+    '''
+        plots a collection of seat detection barcode plots containing the local and global sensor values and total crowdcount timeseries
+        Args:
+            day: the day of given interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+            isSaved: whether or not the plot will be saved to the repo or simply displayed
+            metric: metric of interest from sensor (e.g. 'co2')
+            vLineBoundary: which timeseries the barcode lines height matches
+            num_plots: the number of plots in the full image
+            isDensity: whether or not the barcode lines should be replaced by their estimated density function
+    '''
     faceDetectionSeatCounts = getSeatCounts(day, timeboundaries)
     sortedFaceDetectionSeats = sorted(faceDetectionSeatCounts, key=faceDetectionSeatCounts.get, reverse=True)
     near_seats = [seat for seats in NEAREST_SEATS_BY_SENSOR.values() for seat in seats]
@@ -373,19 +488,29 @@ def plotMultipleFaceDetectionFrequencyWithMetric(
     faceDetectionSeatsNearSensors = list(filter(lambda x: filterac9(day, x) and filterae2(day, x), faceDetectionSeatsNearSensors))
     sensor1s = [NEAREST_SENSOR_BY_SEAT[seat] for seat in faceDetectionSeatsNearSensors]
     sensor2s = ['058ae3'] * num_plots
-    plotMultipleMetricWithFaceDetectionFrequency(faceDetectionSeatsNearSensors, sensor1s, sensor2s, day, timeboundaries, isSaved, metric, vlineBoundary, num_plots, isDensity=isDensity)
+    plotMultipleMetricWithBarcodeGivenTargets(faceDetectionSeatsNearSensors, sensor1s, sensor2s, day, timeboundaries, isSaved, metric, vlineBoundary, num_plots, isDensity=isDensity)
 
-def plotMultipleFaceDetectionFrequency(
+def plotMultipleBarcodes(
         day: int, 
         timeboundaries: tuple[float, float], 
         isSaved=False, 
         isDensity=False,
         isEMA=False,
         isCombined=False,
-    ):
+    ) -> None:
+    '''
+        plots 3 seat detection barcode plots containing the total crowdcount timeseries given the seats of interest
+        Args:
+            day: the day of given interest
+            timeboundaries: tuple of earliest and latest allowed timestamps
+            isSaved: whether or not the plot will be saved to the repo or simply displayed
+            isDensity: whether or not the barcode lines should be replaced by their estimated density function
+            isEMA: whether EMA or KDE will be used for the density estimation function
+            isCombined: whether or not both density and barcodes will be plotted
+    '''
     faceDetectionSeatCounts = getSeatCounts(day, timeboundaries)
     sortedFaceDetectionSeats = sorted(faceDetectionSeatCounts, key=faceDetectionSeatCounts.get, reverse=True)
-    plotMultipleFaceDetection(sortedFaceDetectionSeats, day, timeboundaries, isSaved, isDensity, isEMA, isCombined=isCombined)
+    plotMultipleBarcodeGivenSeats(sortedFaceDetectionSeats, day, timeboundaries, isSaved, isDensity, isEMA, isCombined=isCombined)
 
 
 if __name__ == '__main__':
@@ -393,4 +518,4 @@ if __name__ == '__main__':
         timeboundarystart = datetime.strptime(f'2024-1-{DAY} 9:20:00', "%Y-%m-%d %H:%M:%S").timestamp()
         timeboundaryend = datetime.strptime(f'2024-1-{DAY} 9:40:00', "%Y-%m-%d %H:%M:%S").timestamp() 
         print("plotting", "density + barcode", "on day", DAY)
-        plotMultipleFaceDetectionFrequency(day=DAY, timeboundaries=(timeboundarystart, timeboundaryend), isSaved=True, isDensity=True, isEMA=True, isCombined=True)
+        plotMultipleBarcodes(day=DAY, timeboundaries=(timeboundarystart, timeboundaryend), isSaved=True, isDensity=True, isEMA=True, isCombined=True)

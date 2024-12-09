@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from faceEvent import getEvents
+from discoveryPhase.testUtils.faceEvent import getEvents
 
 def getXYAndLabels(sensor, day):
     with open(f'jan2024SensorSample/elsys-co2-{sensor}/01/elsys-co2-{sensor}_2024-01-{day}.txt', 'r') as file:
