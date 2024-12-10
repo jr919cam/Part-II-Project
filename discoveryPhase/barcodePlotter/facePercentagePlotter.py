@@ -84,7 +84,36 @@ def getBoundedNodeDF(day: int, timeboundaries: tuple[str, str]) -> pd.DataFrame:
 
     return boundedNodeDF    
 
+# Assuming seatTS is a pandas Series
+def save_seat_ts_to_json(seat_ts_dict, output_file):
+    """
+    Save the seatTS dictionary as a JSON file.
 
+    Args:
+        seat_ts_dict: Dictionary where keys are seat identifiers, and values are pandas Series.
+        output_file: Path to the JSON file to save the data.
+    """
+    # Convert the dictionary to a JSON-serialisable format
+    seat_ts_serialisable = {key: value.tolist() for key, value in seat_ts_dict.items()}
+
+    # Save to a JSON file
+    with open(output_file, 'w') as file:
+        json.dump(seat_ts_serialisable, file, indent=4)
+
+def save_timestamps_to_txt(timestamps, output_file):
+    """
+    Save a list of timestamps to a text file, each timestamp on a new line.
+    
+    Args:
+        timestamps: List of timestamps to save.
+        output_file: Path to the text file to save the timestamps.
+    """
+    with open(output_file, 'w') as file:
+        for ts in timestamps:
+            file.write(f"{ts}\n")
+
+
+#
 def getSeatTS(seat: str, day:str, timeboundaries:tuple[str, str]) -> pd.Series:
     '''
         for a given seat, day and bounding timestamps, gets the timestamps of whenever that seat was detected to be occupied
@@ -361,6 +390,46 @@ def plotMultipleMetricWithBarcodeGivenTargets(
         save_path += '-density'
     plt.savefig(save_path + '.png', format='png') if isSaved else plt.show()
 
+def overlay_density_alt(ax, timestamps, timeboundaries, chunk_size=20, label='Occupancy density', color='blue', output_file=None):
+    '''
+    Overlay a density lineplot on the given axis based on timestamps within specified timeboundaries,
+    and optionally save timestamps to a text file.
+    Args:
+        ax: Matplotlib axis to overlay the density plot
+        timestamps: List or array of timestamps to calculate density
+        timeboundaries: Tuple of (start_time, end_time) for the x-axis
+        chunk_size: Size of time chunks (in seconds) for density calculation
+        label: Label for the density plot in the legend
+        color: Line color for the density plot
+        output_file: File path to save the timestamps (optional)
+    '''
+    # Sort the timestamps and initialize variables
+    timestamps = sorted(timestamps)
+    density_x = []
+    density_y = []
+
+    # Save timestamps to a file if output_file is provided
+    if output_file:
+        with open(output_file, 'w') as f:
+            f.writelines(f"{ts}\n" for ts in timestamps)
+
+    # Start from the first timestamp and chunk data
+    start_time = timestamps[0] if timestamps else timeboundaries[0]
+    while start_time < timeboundaries[1]:
+        end_time = start_time + chunk_size
+        chunk_count = len([ts for ts in timestamps if start_time <= ts < end_time])
+        density_x.append((start_time + end_time) / 2)  # Midpoint of the chunk
+        density_y.append(chunk_count)
+        print(chunk_count)
+        start_time = end_time
+
+    # Plot the density
+    ax.plot(density_x, density_y, color=color, label=label, linestyle='--', linewidth=2)
+    return density_x, density_y
+
+
+
+
 def plotMultipleBarcodeGivenSeats(
         seats: list[str], 
         day: int, 
@@ -368,83 +437,107 @@ def plotMultipleBarcodeGivenSeats(
         isSaved=False,  
         isDensity=False,
         isEMA=False,
-        isCombined=False
+        isCombined=False,
+        isDensityAlt=False
     ) -> None:
     '''
-        plots 3 seat detection barcode plots containing the total crowdcount timeseries given the seats of interest
+        Plots seat detection barcode plots containing the total crowdcount timeseries given the seats of interest.
         Args:
-            seats: seat of given interest
-            day: the day of given interest
-            timeboundaries: tuple of earliest and latest allowed timestamps
-            isSaved: whether or not the plot will be saved to the repo or simply displayed
-            isDensity: whether or not the barcode lines should be replaced by their estimated density function
-            isEMA: whether EMA or KDE will be used for the density estimation function
-            isCombined: whether or not both density and barcodes will be plotted
+            seats: Seats of interest.
+            day: The day of interest.
+            timeboundaries: Tuple of earliest and latest allowed timestamps.
+            isSaved: Whether or not the plot will be saved to the repo or displayed.
+            isDensity: Whether barcode lines should be replaced by their estimated density function.
+            isEMA: Whether EMA or KDE will be used for density estimation.
+            isCombined: Whether both density and barcodes will be plotted.
+            isDensityAlt: Whether to overlay a lineplot for density based on time chunking.
     '''
+    seatTSs = {seat: getSeatTS(seat, day, timeboundaries) for seat in seats}
+    print("Seats being processed:", list(seatTSs.keys()))
 
-    seatTSs = {}
-    for seat in seats:
-        seatTSs[seat] = getSeatTS(seat, day, timeboundaries)
-    
     boundedNodeDF = getBoundedNodeDF(day, timeboundaries)
     crowdcountTS, crowdcount = boundedNodeDF['acp_ts'], boundedNodeDF['crowdcount']
 
-    fig, axs = plt.subplots(3, 1, figsize=(45, 15))
+    # x_plots = 3
+    # y_plots = 6
+    # fig, axs = plt.subplots(y_plots, x_plots, figsize=(43, 27))
+    x_plots = 3
+    y_plots = 2
+    fig, axs = plt.subplots(y_plots, x_plots, figsize=(43, 12))
     fig.tight_layout(pad=10, w_pad=15, h_pad=10)
-    for ax, seat in zip(axs.flatten(), seats[::15]):
 
-        xticksTS = np.linspace(timeboundaries[0], timeboundaries[1], int((timeboundaries[1]-timeboundaries[0]) / 60) + 1)
-        xticksLabels = np.array([datetime.fromtimestamp(tickTS).strftime('%H:%M') for tickTS in xticksTS])
+    # Iterate over seats and axes
+    for ax, seat in zip(axs.flatten(), seats[:x_plots * y_plots]):
+        xticksTS = np.linspace(timeboundaries[0], timeboundaries[1], int((timeboundaries[1] - timeboundaries[0]) / 600) + 1)
+        xticksLabels = [datetime.fromtimestamp(tickTS).strftime('%H:%M') for tickTS in xticksTS]
         ax.set_xticks(xticksTS)
         ax.set_xticklabels(xticksLabels, rotation=60)
         ax.set_xlim(timeboundaries)
         ax.set_xlabel('ACP timestamp')
-        ax.set_title(f'{seat} occupancy levels     ({day}/01/2024)')
+        ax.set_title(f'{seat} occupancy levels ({day}/01/2024)')
 
         axDensity = ax.twinx()
         axDensity.set_xlim(timeboundaries[0], timeboundaries[1])
         axDensity.set_yticks([])
         axDensity.set_yticklabels([])
-        if isDensity or isCombined:
-            if isEMA:
-                x = seatTSs[seat]
-                y = getSeatTSDensityPointsEMA(seatTSs[seat])
-            else:
-                x, y = getSeatTSDensityPointsKDE(seatTSs[seat], timeboundaries)
-            axDensity.plot(x, y, color='black', label=f'seat occupancy density', zorder=-10)
-            
-            if isCombined:
-                axDensity2 = axDensity.twinx()
-                axDensity2.set_xlim(timeboundaries[0], timeboundaries[1])
-                axDensity2.set_yticks([])
-                axDensity2.set_yticklabels([])
-                y = np.ones_like(seatTSs[seat])
-                axDensity2.bar(seatTSs[seat], y, width=0.5, align='center', color='black', alpha=0.3)
-        else:
-            y = np.ones_like(seatTSs[seat])
-            axDensity.bar(seatTSs[seat], y, width=1, align='center', color='black', alpha=0.1)
 
+        # Plot barcode lines
+        # y = np.ones_like(seatTSs[seat])
+        # Increase the height of the barcode lines
+        height = 10  # Adjust this to control the height
+        y = np.full_like(seatTSs[seat], height)
+        axDensity.bar(seatTSs[seat], y, width=1, align='center', color='black', alpha=0.1)
+        
+        # Save timestamps to .txt
+        save_timestamps_to_txt(seatTSs[seat], f"{day}_{seat}_seatTS.txt")
+
+        #  Save TS to debug
+       # Example usage
+        save_seat_ts_to_json(seatTSs, f'{day}_seatTS.json')
+
+        # Overlay density plot if selected
+        if isDensityAlt:
+            print("DENSITY ALT SELECTED")
+            overlay_density_alt(
+            ax=ax, 
+            timestamps=seatTSs[seat], 
+            timeboundaries=(timeboundarystart, timeboundaryend), 
+            chunk_size=60, 
+            label='Occupancy density', 
+            color='blue', 
+            output_file=str(day)+"_"+str(seat)+'timestamps.txt'
+        )
+
+        print(seat)
+        # print(seatTSs[seat])
+        # print("y",y)
+        # Crowdcount overlay
         ax2 = ax.twinx()
-        ax2.plot(crowdcountTS, crowdcount, color='w', linewidth=3, zorder=2)
-        ax2.plot(crowdcountTS, crowdcount, color='orange', label='total crowdcount', zorder=3)
-        ax2.set_ylabel('total crowdcount')
-        ax2.set_ylim(0,150)
+        ax2.plot(crowdcountTS, crowdcount, color='orange', label='Total crowdcount')
+        ax2.set_ylabel('Total crowdcount')
+        ax2.set_ylim(0, 150)
         ax2.tick_params(axis='y')
 
+        # Combine legends
         handles1, labels1 = ax.get_legend_handles_labels()
         handles2, labels2 = ax2.get_legend_handles_labels()
         handles3, labels3 = axDensity.get_legend_handles_labels()
         handles = handles1 + handles2 + handles3
         labels = labels1 + labels2 + labels3
         ax.legend(handles, labels, loc='upper left')
+
+    # Hide unused axes
+    for ax in axs.flatten()[len(seats[:x_plots * y_plots]):]:
+        print("Hiding unused subplot")
+        ax.axis('off')
+
     save_path = f'discoveryPhase/plots/combinedBarcodePlots/combinedFaceVisibilityPlots4/{day}'
-    if isCombined:
-        save_path += '-single-combined-interval-EMA'
-    elif isDensity:
-        save_path += '-density'
-        if isEMA:
-            save_path += '-EMA'
-    plt.savefig(save_path + '.png', format='png') if isSaved else plt.show()
+    save_format = '.png'
+    if isDensityAlt:
+        save_path += '-density-alt'
+    plt.savefig(save_path + save_format, format=save_format[1:]) if isSaved else plt.show()
+    print(f"Saved in: {save_path}{save_format}")
+
 
 def filterae2(day, seat):
     '''
@@ -497,6 +590,7 @@ def plotMultipleBarcodes(
         isDensity=False,
         isEMA=False,
         isCombined=False,
+        isDensityAlt=False
     ) -> None:
     '''
         plots 3 seat detection barcode plots containing the total crowdcount timeseries given the seats of interest
@@ -510,12 +604,20 @@ def plotMultipleBarcodes(
     '''
     faceDetectionSeatCounts = getSeatCounts(day, timeboundaries)
     sortedFaceDetectionSeats = sorted(faceDetectionSeatCounts, key=faceDetectionSeatCounts.get, reverse=True)
-    plotMultipleBarcodeGivenSeats(sortedFaceDetectionSeats, day, timeboundaries, isSaved, isDensity, isEMA, isCombined=isCombined)
-
+    print("Params:",timeboundaries, "|Saved:",isSaved,"|Density:", isDensity,"|Alt Density:", isDensityAlt,"|EMA:", isEMA, "|Combined:",isCombined)
+    plotMultipleBarcodeGivenSeats(sortedFaceDetectionSeats, day, timeboundaries, isSaved, isDensity, isEMA, isCombined=isCombined, isDensityAlt=isDensityAlt)
 
 if __name__ == '__main__':
-    for DAY in range(22, 27, 2):
-        timeboundarystart = datetime.strptime(f'2024-1-{DAY} 9:20:00', "%Y-%m-%d %H:%M:%S").timestamp()
-        timeboundaryend = datetime.strptime(f'2024-1-{DAY} 9:40:00', "%Y-%m-%d %H:%M:%S").timestamp() 
+    for DAY in range(22, 25, 2):
+        timeboundarystart = datetime.strptime(f'2024-1-{DAY} 8:30:00', "%Y-%m-%d %H:%M:%S").timestamp()
+        timeboundaryend = datetime.strptime(f'2024-1-{DAY} 13:30:00', "%Y-%m-%d %H:%M:%S").timestamp() 
         print("plotting", "density + barcode", "on day", DAY)
-        plotMultipleBarcodes(day=DAY, timeboundaries=(timeboundarystart, timeboundaryend), isSaved=True, isDensity=True, isEMA=True, isCombined=True)
+        plotMultipleBarcodes(day=DAY,
+                             timeboundaries=(timeboundarystart,
+                                             timeboundaryend),
+                             isSaved=True,
+                             isDensity=False,
+                             isEMA=False,
+                             isCombined=False,
+                             isDensityAlt=True)
+
