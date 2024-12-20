@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Node Data</title>
+</head>
+<body>
+    <h1>Real-Time Node Data</h1>
+    <div style="height: 80vh; overflow-y: hidden; padding: 1vw; margin-left: 5vw; background-color: #CCE3ED; width: 25vw;">
+        <div id="data"></div>
+    </div>
+    <script>
+        const dataList = document.getElementById("data");
+        const ws = new WebSocket("ws://localhost:8000/ws");
+
+        ws.onmessage = (event) => {
+            const li = document.createElement("li");
+            const dataObject = JSON.parse(event.data);
+            li.textContent = `Crowdcount: ${dataObject.payload_cooked.crowdcount} @ ${dataObject.acp_ts}`;
+            dataList.appendChild(li);
+        };
+
+        ws.onclose = () => {
+            const li = document.createElement("li");
+            li.textContent = "Connection closed.";
+            dataList.appendChild(li);
+        };
+    </script>
+</body>
+</html>
