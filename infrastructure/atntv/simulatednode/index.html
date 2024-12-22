@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulted Node Data</title>
+</head>
+<body>
+    <h1>Simulted Node Data</h1>
+    <div style="display: flex; flex-direction: row; margin-left: 5vw;">
+        <label for="dayDropdown" style="margin-right: 1vw;">Day to simulate: </label>
+        <select id="dayDropdown" onchange="handleDayDropdown(event)">
+            <option value="" selected disabled>Select an option</option>
+            <option value="22">22/01/24</option>
+            <option value="23">23/01/24</option>
+            <option value="24">24/01/24</option>
+            <option value="25">25/01/24</option>
+            <option value="26">26/01/24</option>
+            <option value="27">27/01/24</option>
+            <option value="28">28/01/24</option>
+        </select>
+    </div>
+    
+    <div style="display: flex; flex-direction: row;">
+        <div id="datacontainer" style="height: 80vh; overflow-y: scroll; padding: 1vw; margin-left: 5vw; background-color: #CCE3ED; width: 25vw;">
+            <h3>Node readings</h3>
+            <div id="data"></div>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <div style="margin-left: 5vw; margin-top: 2vh;">
+                <span>difference: </span>
+                <span id="difference">0</span>
+            </div>
+            <div style="margin-left: 5vw; margin-top: 2vh;">
+                <span>difference EMA: </span>
+                <span id="diffEMA">0.00</span>
+            </div>
+        </div>
+        <div id="lectureEventsContianer" style="height: 80vh; overflow-y: scroll; padding: 1vw; margin-left: 5vw; background-color: #EDCDCC; width: 25vw;">
+            <h3>Lecture events</h3>
+            <div id="lectureEvents"></div>
+        </div>
+        
+    </div>
+    <script>
+        const differenceSpan = document.getElementById("difference");
+        const diffEMASpan = document.getElementById("diffEMA")
+        const speed = 100;
+
+        let prevCrowdCount;
+        let diffCrowdCount;
+        let EMA = 0;
+
+        let prevts;
+        let diffts;
+        let timeSinceLectureEvent;
+
+        let ws;
+
+        const handleDayDropdown = (event) => {
+            if(ws) {
+                ws.close()
+                console.log("closed")
+            }
+            const day = event.target.value
+            console.log(day)
+            ws = new WebSocket(`ws://localhost:8002/ws?speed=${speed}&day=${day}`);
+            ws.onclose = wsOnclose;
+            ws.onmessage = wsOnmessage;
+            ws.onopen = wsOnopen;
+        }
+
+        const wsOnopen = (event) => {
+            const oldData = document.getElementById("data");
+            const newData = document.createElement("div");
+            newData.id = "data"
+            oldData.replaceWith(newData);
+        }
+
+        const wsOnmessage = (event) => {
+            const dataList = document.getElementById("data");
+            const dataLi = document.createElement("li")
+
+            const lectureEvents = document.getElementById("lectureEvents");
+
+            const dataObject = JSON.parse(event.data);
+
+            const date = new Date(dataObject.acp_ts * 1000)
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            dataLi.textContent = `Crowdcount: ${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
+            dataList.appendChild(dataLi);
+
+            diffCrowdCount = prevCrowdCount ? dataObject.payload_cooked.crowdcount - prevCrowdCount : 0;
+            prevCrowdCount = dataObject.payload_cooked.crowdcount;
+
+            diffts = prevts ? dataObject.acp_ts - prevts : 0;
+            prevts = dataObject.acp_ts
+            if(timeSinceLectureEvent !== undefined){
+                timeSinceLectureEvent = timeSinceLectureEvent + diffts
+            }
+            alpha = 1/3
+            EMA = alpha * diffCrowdCount + (1-alpha) * EMA
+
+            if(
+                Math.abs(EMA) > 1 
+                && (
+                    timeSinceLectureEvent > 10*60 
+                    || timeSinceLectureEvent === undefined
+                ) 
+                && (
+                    minutes <= 7.5 || minutes >= 52.5 || (minutes >= 22.5 && minutes <= 37.5)
+                )
+            ) {
+                const lectureEventLi = document.createElement("li")
+                timeSinceLectureEvent = 0
+                lectureEventLi.textContent = `Lecture boundary event @ ${hours}:${minutes}:${seconds}`;
+                lectureEvents.appendChild(lectureEventLi);
+            }
+
+            differenceSpan.textContent = diffCrowdCount
+            diffEMASpan.textContent = EMA.toFixed(2)
+        };
+
+        const wsOnclose = (event) => {
+            console.log('Closed');
+        };
+    </script>
+</body>
+</html>

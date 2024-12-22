@@ -15,6 +15,10 @@ async def root_response(request):
 async def livenode_response(request):
     return await file("infrastructure/atntv/livenode/index.html")
 
+@app.get("/simulatednode")
+async def simulatednode_response(request):
+    return await file("infrastructure/atntv/simulatednode/index.html")
+
 
 if __name__ == "__main__":
-    app.run(port=8001, debug=True, auto_reload=True)
+    app.run(port=8000, debug=True, auto_reload=True)

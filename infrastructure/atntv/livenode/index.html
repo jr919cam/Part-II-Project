@@ -12,10 +12,10 @@
     </div>
     <script>
         const dataList = document.getElementById("data");
-        const ws = new WebSocket("ws://localhost:8000/ws");
+        const ws = new WebSocket("ws://localhost:8001/ws");
 
         ws.onmessage = (event) => {
-            const li = document.createElement("li");
+            const li = document.createElement("li")
             const dataObject = JSON.parse(event.data);
             li.textContent = `Crowdcount: ${dataObject.payload_cooked.crowdcount} @ ${dataObject.acp_ts}`;
             dataList.appendChild(li);
@@ -24,6 +24,7 @@
         ws.onclose = () => {
             const li = document.createElement("li");
             li.textContent = "Connection closed.";
+            console.log('Closed');
             dataList.appendChild(li);
         };
     </script>

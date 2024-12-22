@@ -2,7 +2,6 @@ import asyncio
 from sanic import Sanic
 from sanic import Websocket
 import paho.mqtt.client as mqtt
-import json
 
 app = Sanic("nodeBridge")
 
@@ -34,10 +33,11 @@ async def websocket_feed(request, ws: Websocket):
         while True:
             if len(node_published_data) > 0:
                 latest_response = node_published_data.pop(0)[2:-1]
+                print(f"sending {latest_response}")
                 await ws.send(latest_response)
             await asyncio.sleep(0.1)
     except Exception as e:
         print(f"WebSocket connection closed: {e}")
 
 if __name__ == "__main__":
-    app.run(port=8000, auto_reload=True)
+    app.run(port=8001, auto_reload=True)
