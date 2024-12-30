@@ -1,6 +1,4 @@
-import { ConfigObj, SpansObj, CrowdCountObj, TimestampObj, WsObj} from './mainTypes.ts'
-
-export const handleDayDropdown = (event, spansObj: SpansObj, configObj:ConfigObj, timestampObj:TimestampObj, crowdCountObj: CrowdCountObj, wsObj:WsObj, ): void => {
+const handleDayDropdown = (event, spansObj, configObj, timestampObj, crowdCountObj, wsObj, proxiedDataArrObj) => {
     if(wsObj.ws) {
         wsObj.ws.close()
         console.log("closed")
@@ -9,18 +7,23 @@ export const handleDayDropdown = (event, spansObj: SpansObj, configObj:ConfigObj
     console.log(day)
     wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}`);
     wsObj.ws.onclose = wsOnclose;
-    wsObj.ws.onmessage = (event) => wsOnmessage(event, spansObj, timestampObj, crowdCountObj, configObj.alpha);
+    wsObj.ws.onmessage = (event) => wsOnmessage(event, spansObj, timestampObj, crowdCountObj, configObj.alpha, proxiedDataArrObj);
     wsObj.ws.onopen = wsOnopen;
 }
 
-const wsOnopen = (event: Event): void => {
+const wsOnopen = (event) => {
     const oldData = document.getElementById("data");
     const newData = document.createElement("div");
     newData.id = "data"
     oldData?.replaceWith(newData);
+
+    const oldLectureEvents = document.getElementById("lectureEvents");
+    const newLectureEvents = document.createElement("div");
+    newLectureEvents.id = "lectureEvents"
+    oldLectureEvents?.replaceWith(newLectureEvents);
 }
 
-const wsOnmessage = (event: MessageEvent, spansObj: SpansObj, timestampObj: TimestampObj, crowdCountObj: CrowdCountObj, alpha:number) => {
+const wsOnmessage = (event, spansObj, timestampObj, crowdCountObj, alpha, proxiedDataArrObj) => {
     const dataList = document.getElementById("data");
     const dataLi = document.createElement("li")
 
@@ -35,6 +38,8 @@ const wsOnmessage = (event: MessageEvent, spansObj: SpansObj, timestampObj: Time
     
     dataLi.textContent = `Crowdcount: ${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
     dataList?.appendChild(dataLi);
+
+    proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
 
     crowdCountObj.diffCrowdCount = crowdCountObj.prevCrowdCount ? dataObject.payload_cooked.crowdcount - crowdCountObj.prevCrowdCount : 0;
     crowdCountObj.prevCrowdCount = dataObject.payload_cooked.crowdcount;
@@ -68,6 +73,8 @@ const wsOnmessage = (event: MessageEvent, spansObj: SpansObj, timestampObj: Time
     }
 };
 
-const wsOnclose = (event: CloseEvent) => {
+const wsOnclose = (event) => {
     console.log('Closed');
 };
+
+export default handleDayDropdown
