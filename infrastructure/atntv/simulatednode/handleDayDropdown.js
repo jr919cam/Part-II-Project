@@ -8,10 +8,10 @@ const handleDayDropdown = (event, spansObj, configObj, timestampObj, crowdCountO
     wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}`);
     wsObj.ws.onclose = wsOnclose;
     wsObj.ws.onmessage = (event) => wsOnmessage(event, spansObj, timestampObj, crowdCountObj, configObj.alpha, proxiedDataArrObj);
-    wsObj.ws.onopen = wsOnopen;
+    wsObj.ws.onopen = (event) => wsOnopen(event, proxiedDataArrObj);
 }
 
-const wsOnopen = (event) => {
+const wsOnopen = (event, proxiedDataArrObj) => {
     const oldData = document.getElementById("data");
     const newData = document.createElement("div");
     newData.id = "data"
@@ -21,6 +21,8 @@ const wsOnopen = (event) => {
     const newLectureEvents = document.createElement("div");
     newLectureEvents.id = "lectureEvents"
     oldLectureEvents?.replaceWith(newLectureEvents);
+
+    proxiedDataArrObj.dataArr = []
 }
 
 const wsOnmessage = (event, spansObj, timestampObj, crowdCountObj, alpha, proxiedDataArrObj) => {
@@ -36,7 +38,7 @@ const wsOnmessage = (event, spansObj, timestampObj, crowdCountObj, alpha, proxie
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
     
-    dataLi.textContent = `Crowdcount: ${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
+    dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
     dataList?.appendChild(dataLi);
 
     proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
@@ -63,8 +65,9 @@ const wsOnmessage = (event, spansObj, timestampObj, crowdCountObj, alpha, proxie
     ) {
         const lectureEventLi = document.createElement("li")
         timestampObj.timeSinceLectureEvent = 0
-        lectureEventLi.textContent = `Lecture boundary event @ ${hours}:${minutes}:${seconds}`;
+        lectureEventLi.textContent = `Boundary @ ${hours}:${minutes}:${seconds}`;
         lectureEvents?.appendChild(lectureEventLi);
+        proxiedDataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"boundary"})
     }
 
     if(spansObj.differenceSpan && spansObj.diffEMASpan) {
