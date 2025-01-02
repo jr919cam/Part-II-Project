@@ -15,15 +15,14 @@
 
     const wsObj = {};
 
-    const dataArrObj = {dataArr: [], eventArr: []}
+    const dataArrObj = {dataArr: [], eventArr: [], barcodeArr:[], isVisible:false, wasVisible:false}
     const handler = {
         get(target, property) {
             if (property === 'push') {
                 return (...args) => {
                     Array.prototype.push.apply(target.dataArr, args);
-                    console.log("pushed")
                     const oldChart = document.getElementById("chart")
-                    oldChart.replaceWith(createChart([...target.dataArr], [...target.eventArr]));
+                    oldChart.replaceWith(createChart([...target.dataArr], [...target.eventArr], [...target.barcodeArr]));
                 };
             }
             return Reflect.get(target, property);

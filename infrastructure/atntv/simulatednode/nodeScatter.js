@@ -1,4 +1,4 @@
-export const createChart = (data, events) => {
+export const createChart = (data, events, barcodes) => {
     const width = 928;
     const height = 600;
     const marginTop = 20;
@@ -83,6 +83,17 @@ export const createChart = (data, events) => {
         .attr("y1", marginTop)
         .attr("x2", e => x(e.acp_ts)) 
         .attr("y2", height - marginBottom);
+
+    svg.append("g")
+    .attr("stroke", "black")
+    .attr("stroke-opacity", 0.1)
+    .selectAll()
+    .data(barcodes)
+    .join("rect")
+        .attr("x", (b) => x(b.start_acp_ts))
+        .attr("y", (height - marginBottom) - 150)
+        .attr("width", (b) => x(b.end_acp_ts) - x(b.start_acp_ts))
+        .attr("height", 150)
   
     return svg.node();
 }

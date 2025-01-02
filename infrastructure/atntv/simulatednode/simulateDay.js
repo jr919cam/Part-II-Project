@@ -11,7 +11,7 @@ const simulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     console.log(day)
     wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}&startTime=${startTime}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
-    wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj);
+    wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj, seat);
     wsObj.ws.onopen = (event) => wsOnopen(proxiedDataArrObj);
 }
 
@@ -27,9 +27,12 @@ const wsOnopen = (proxiedDataArrObj) => {
     oldLectureEvents?.replaceWith(newLectureEvents);
 
     proxiedDataArrObj.dataArr = []
+    proxiedDataArrObj.eventArr = []
+    proxiedDataArrObj.barcodeArr = []
+    proxiedDataArrObj.isVisible = false
 }
 
-const wsOnmessage = (event, proxiedDataArrObj) => {
+const wsOnmessage = (event, proxiedDataArrObj, seat) => {
     const dataList = document.getElementById("data");
     const dataLi = document.createElement("li")
 
@@ -46,6 +49,20 @@ const wsOnmessage = (event, proxiedDataArrObj) => {
         dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
         dataList?.appendChild(dataLi);
         proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
+
+        if(proxiedDataArrObj.isVisible) {
+            proxiedDataArrObj.barcodeArr[proxiedDataArrObj.barcodeArr.length-1].end_acp_ts = dataObject.acp_ts
+            proxiedDataArrObj.isVisible = false
+            proxiedDataArrObj.wasVisible = true
+        }
+        if(dataObject.payload_cooked.seats_occupied.includes(seat)) {
+            if(!proxiedDataArrObj.wasVisible) {
+                proxiedDataArrObj.barcodeArr.push({start_acp_ts: dataObject.acp_ts, end_acp_ts: dataObject.acp_ts})
+            }
+            proxiedDataArrObj.isVisible = true
+        } else {
+            proxiedDataArrObj.wasVisible = false
+        }
     }
     
     if(dataObject.type === "event"){
