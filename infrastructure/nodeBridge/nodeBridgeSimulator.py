@@ -44,7 +44,6 @@ async def websocket_feed(request, ws: Websocket):
     speed = float(request.args.get("speed"))
     day = request.args.get("day")
     startTime = request.args.get("startTime")
-    print(startTime)
 
     startDateObj= datetime.strptime(f"{startTime} {day}/{1}/{2024}", "%H:%M %d/%m/%Y")
     startTimestamp = int(time.mktime(startDateObj.timetuple()))

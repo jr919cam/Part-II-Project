@@ -33,14 +33,25 @@
 
 
     window.handleSimulateFormSubmission = (event) => simulateDay(event, configObj, wsObj, proxiedDataArrObj)
+    window.toggleLogs = (event) => {
+        const logsContainer = document.getElementById("logsContainer")
+        event.target.classList.toggle('active');
+            if (event.target.classList.contains('active')) {
+                event.target.textContent = 'Show logs';
+                logsContainer.style.display = "none"
+            } else {
+                event.target.textContent = 'Hide logs';
+                logsContainer.style.display = "flex"
+            }
+    }
 </script>
 
 <body>
     <div style="padding: 1vw; background-color: #ede9cc;">
         <h1>Simulted Node Data</h1>
     </div>
-    <div style="display: flex; flex-direction: row; margin: 1vw; margin-left: 0;">
-        <form>
+    <form>
+        <div style="display: flex; flex-direction: row; margin: 1vw; margin-left: 0; max-height: 3vh;">
             <label for="dayDropdown" style="padding-right: 1vw;">Day to simulate: </label>
             <select id="dayDropdown" name="day">
                 <option value="" selected disabled>Select an option</option>
@@ -56,20 +67,27 @@
             <label for="startTime" style="padding: 0 1vw 0 4vw;">Start time:</label>
             <input type="time" id="startTime" name="startTime" value="08:00">
 
-            <span style="width:100%"></span>
-
-            <button style="width:5vw" type="submit" onclick="handleSimulateFormSubmission(event)">Go!</button>
-        </form>
+            <label for="seat" style="padding: 0 1vw 0 4vw;">Seat:</label>
+            <input type="text" style="max-width: 5vw;" id="seat" name="seat">
+        </div>
+        <button style="margin-bottom: 1vw; width:5vw; background-color: #d6edcc;" type="submit" onclick="handleSimulateFormSubmission(event)">Go!</button>
+    </form>
+    <div id='options'>
+        <div display="flex">
+            <button id="toggleButton" onClick="toggleLogs(event)" style="margin-bottom: 1vw">Hide logs</button>
+        </div>
     </div>
     
     <div style="display: flex; flex-direction: row;">
-        <div id="datacontainer" style="height: 80vh; overflow-y: scroll; padding: 1vw; background-color: #ede9cc;">
-            <h3>Node readings</h3>
-            <div id="data"></div>
-        </div>
-        <div id="lectureEventsContianer" style="height: 80vh; overflow-y: scroll; padding: 1vw; margin-left: 1vw; background-color: #EDCDCC;">
-            <h3>Lecture events</h3>
-            <div id="lectureEvents"></div>
+        <div id="logsContainer" style="display: flex;">
+            <div id="datacontainer" style="height: 80vh; overflow: scroll; padding: 1vw; background-color: #ede9cc; max-width: 10vw;">
+                <h3>Node readings</h3>
+                <div id="data"></div>
+            </div>
+            <div id="lectureEventsContianer" style="height: 80vh; overflow: scroll; padding: 1vw; margin-left: 1vw; background-color: #EDCDCC; max-width: 10vw;">
+                <h3>Lecture events</h3>
+                <div id="lectureEvents"></div>
+            </div>
         </div>
         <div id="chartContainer" style="max-width: 50vw; margin-left: 1vw;">
             <div id="chart"></div>

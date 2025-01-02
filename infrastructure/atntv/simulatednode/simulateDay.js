@@ -7,6 +7,7 @@ const simulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     const form = event.target.form;
     const day = form.day.value;
     const startTime = form.startTime.value;
+    const seat = form.seat.value;
     console.log(day)
     wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}&startTime=${startTime}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
