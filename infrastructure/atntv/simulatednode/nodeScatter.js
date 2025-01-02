@@ -94,6 +94,7 @@ export const createChart = (data, events, barcodes) => {
         .attr("y", (height - marginBottom) - 150)
         .attr("width", (b) => x(b.end_acp_ts) - x(b.start_acp_ts))
         .attr("height", 150)
+        .attr("fill-opacity", 0.5);
   
     return svg.node();
 }
