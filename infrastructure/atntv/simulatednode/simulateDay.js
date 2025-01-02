@@ -1,11 +1,14 @@
-const handleDayDropdown = (event, configObj, wsObj, proxiedDataArrObj) => {
+const simulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     if(wsObj.ws) {
         wsObj.ws.close()
         console.log("closed")
     }
-    const day = event.target.value
+    event.preventDefault();
+    const form = event.target.form;
+    const day = form.day.value;
+    const startTime = form.startTime.value;
     console.log(day)
-    wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}&alpha=${configObj.alpha}`);
+    wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}&startTime=${startTime}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
     wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj);
     wsObj.ws.onopen = (event) => wsOnopen(proxiedDataArrObj);
@@ -56,4 +59,4 @@ const wsOnclose = (event) => {
     console.log('Closed');
 };
 
-export default handleDayDropdown
+export default simulateDay

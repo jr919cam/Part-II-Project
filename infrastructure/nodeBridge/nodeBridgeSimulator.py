@@ -1,4 +1,6 @@
 import asyncio
+from datetime import datetime
+import time
 from sanic import Sanic
 from sanic import Websocket
 import json
@@ -19,7 +21,7 @@ class LectureBoundarySynopsis():
         crowdcountDelta = JSONDataList[t]['crowdcount'] - JSONDataList[t-1]['crowdcount']
         timeDelta = float(JSONDataList[t]['acp_ts']) - float(JSONDataList[t-1]['acp_ts'])
         self.EMA = self.alpha * crowdcountDelta + (1-self.alpha) * self.EMA
-        if self.timeSinceLastEvent >= 0 and self.timeSinceLastEvent < 7.5:
+        if self.timeSinceLastEvent >= 0 and self.timeSinceLastEvent < 10 * 60:
             self.timeSinceLastEvent += timeDelta
             return False
         if abs(self.EMA < 1):
@@ -27,12 +29,13 @@ class LectureBoundarySynopsis():
         self.timeSinceLastEvent = 0
         return True
 
-def getJSONDataList(day: int)->list[dict]:
+def getJSONDataList(day: int, startTimeStamp: int)->list[dict]:
     with open(f'node_22-28Jan/cerberus-node-lt1_2024-01-{day}.txt', 'r') as file:
         JSONDataList = [json.loads(dataLine[:-1]) for dataLine in file]
-    return JSONDataList[6200:]
-
-
+        for i, reading in enumerate(JSONDataList):
+            if float(reading["acp_ts"]) >= startTimeStamp:
+                return JSONDataList[i:]
+        return []
 
 @app.websocket("/ws")
 async def websocket_feed(request, ws: Websocket):
@@ -40,7 +43,13 @@ async def websocket_feed(request, ws: Websocket):
     synopsis = LectureBoundarySynopsis(0, alpha)
     speed = float(request.args.get("speed"))
     day = request.args.get("day")
-    JSONDataList = getJSONDataList(day)
+    startTime = request.args.get("startTime")
+    print(startTime)
+
+    startDateObj= datetime.strptime(f"{startTime} {day}/{1}/{2024}", "%H:%M %d/%m/%Y")
+    startTimestamp = int(time.mktime(startDateObj.timetuple()))
+
+    JSONDataList = getJSONDataList(day, startTimestamp)
     try:
         for t, reading in enumerate(JSONDataList):
             acp_ts, acp_id, crowdcount, seats_occupied = reading.values()
