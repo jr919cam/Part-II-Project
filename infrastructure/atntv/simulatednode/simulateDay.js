@@ -46,22 +46,27 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
     const seconds = String(date.getSeconds()).padStart(2, '0');
 
     if(dataObject.type === "reading") {
-        dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
-        dataList?.appendChild(dataLi);
-        proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
+        if(dataObject.readingType === "node") {
+            dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
+            dataList?.appendChild(dataLi);
+            proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
 
-        if(proxiedDataArrObj.isVisible) {
-            proxiedDataArrObj.barcodeArr[proxiedDataArrObj.barcodeArr.length-1].end_acp_ts = dataObject.acp_ts
-            proxiedDataArrObj.isVisible = false
-            proxiedDataArrObj.wasVisible = true
-        }
-        if(dataObject.payload_cooked.seats_occupied.includes(seat)) {
-            if(!proxiedDataArrObj.wasVisible) {
-                proxiedDataArrObj.barcodeArr.push({start_acp_ts: dataObject.acp_ts, end_acp_ts: dataObject.acp_ts})
+            if(proxiedDataArrObj.isVisible) {
+                proxiedDataArrObj.barcodeArr[proxiedDataArrObj.barcodeArr.length-1].end_acp_ts = dataObject.acp_ts
+                proxiedDataArrObj.isVisible = false
+                proxiedDataArrObj.wasVisible = true
             }
-            proxiedDataArrObj.isVisible = true
-        } else {
-            proxiedDataArrObj.wasVisible = false
+            if(dataObject.payload_cooked.seats_occupied.includes(seat)) {
+                if(!proxiedDataArrObj.wasVisible) {
+                    proxiedDataArrObj.barcodeArr.push({start_acp_ts: dataObject.acp_ts, end_acp_ts: dataObject.acp_ts})
+                }
+                proxiedDataArrObj.isVisible = true
+            } else {
+                proxiedDataArrObj.wasVisible = false
+            }
+        } 
+        if (dataObject.readingType === "variance") {
+            console.log(`variance: ${dataObject}`)
         }
     }
     
