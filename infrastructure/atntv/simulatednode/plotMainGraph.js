@@ -1,4 +1,4 @@
-export const createChart = (data, events, barcodes) => {
+const plotMainGraph = (data, events, barcodes) => {
     const width = 928;
     const height = 600;
     const marginTop = 20;
@@ -98,3 +98,5 @@ export const createChart = (data, events, barcodes) => {
   
     return svg.node();
 }
+
+export default plotMainGraph
