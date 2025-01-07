@@ -1,3 +1,5 @@
+import plotSeatDiagram from "/infrastructure/atntv/simulatednode/plotSeatDiagram.js";
+
 const simulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     if(wsObj.ws) {
         wsObj.ws.close()
@@ -9,7 +11,7 @@ const simulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     const startTime = form.startTime.value;
     const seat = form.seat.value;
     console.log(day)
-    wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}&startTime=${startTime}&alpha=${configObj.alpha}`);
+    wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}&startTime=${startTime}&seat=${seat}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
     wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj, seat);
     wsObj.ws.onopen = (event) => wsOnopen(proxiedDataArrObj);
@@ -29,6 +31,7 @@ const wsOnopen = (proxiedDataArrObj) => {
     proxiedDataArrObj.dataArr = []
     proxiedDataArrObj.eventArr = []
     proxiedDataArrObj.barcodeArr = []
+    proxiedDataArrObj.varianceArr = []
     proxiedDataArrObj.isVisible = false
 }
 
@@ -37,6 +40,8 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
     const dataLi = document.createElement("li")
 
     const lectureEvents = document.getElementById("lectureEvents");
+
+    const seatDiagramContainer = document.getElementById("seatDiagramContainer")
 
     const dataObject = JSON.parse(event.data);
 
@@ -47,6 +52,7 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
 
     if(dataObject.type === "reading") {
         if(dataObject.readingType === "node") {
+            seatDiagramContainer.replaceChild(plotSeatDiagram(dataObject.payload_cooked.seats_occupied), seatDiagramContainer.firstChild)
             dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
             dataList?.appendChild(dataLi);
             proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
@@ -66,7 +72,7 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
             }
         } 
         if (dataObject.readingType === "variance") {
-            console.log(`variance: ${dataObject}`)
+            proxiedDataArrObj.varianceArr.push({...dataObject})
         }
     }
     

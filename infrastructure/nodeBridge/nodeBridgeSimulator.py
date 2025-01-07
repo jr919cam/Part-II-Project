@@ -71,12 +71,13 @@ async def websocket_feed(request, ws: Websocket):
     speed = float(request.args.get("speed"))
     day = request.args.get("day")
     startTime = request.args.get("startTime")
+    seat = request.args.get("seat")
 
     startDateObj= datetime.strptime(f"{startTime} {day}/{1}/{2024}", "%H:%M %d/%m/%Y")
     startTimestamp = int(time.mktime(startDateObj.timetuple()))
 
     synopsis = LectureBoundarySynopsis(0, alpha)
-    varianceEngine = RollingSeatVarianceEngine("MA9", speed=speed)
+    varianceEngine = RollingSeatVarianceEngine(seat, speed=speed)
 
     JSONDataList = getJSONDataList(day, startTimestamp)
     async def sendLoop():
@@ -85,11 +86,8 @@ async def websocket_feed(request, ws: Websocket):
                 acp_ts, acp_id, crowdcount, seats_occupied = reading.values()
                 formattedReading = {"acp_ts":acp_ts,"acp_id":acp_id, "payload_cooked":{"crowdcount": crowdcount, "seats_occupied": seats_occupied}, "type":"reading", "readingType":"node"}
                 varianceEngine.incrementChunkCounter(seats_occupied)
-                
-                # print(f'sending: {formattedReading}')
                 await ws.send(json.dumps(formattedReading))
                 if synopsis.isEMALectureEvent(JSONDataList, t):
-                    # print(f'\n\nsending lecture EVENT\n\n')
                     await ws.send(json.dumps({"acp_ts":acp_ts, "type":"event"}))
                 if t == len(JSONDataList) - 1:
                     break

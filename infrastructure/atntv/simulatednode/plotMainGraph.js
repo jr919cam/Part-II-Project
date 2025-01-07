@@ -1,4 +1,4 @@
-const plotMainGraph = (data, events, barcodes) => {
+const plotMainGraph = (data, events, barcodes, variance) => {
     const width = 928;
     const height = 600;
     const marginTop = 20;
@@ -13,6 +13,10 @@ const plotMainGraph = (data, events, barcodes) => {
     const y = d3.scaleLinear()
         .domain([0, d3.max(data, d=>d.crowdcount)]).nice()
         .range([height - marginBottom, marginTop]);
+
+    const yVariance = d3.scaleLinear()
+        .domain([0, d3.max(variance, v=>v.variance)]).nice()
+        .range([height - marginBottom, marginTop + height/2]);
   
     const svg = d3.create("svg")
         .attr("width", width)
@@ -35,7 +39,7 @@ const plotMainGraph = (data, events, barcodes) => {
             .attr("x2", width - marginRight - marginLeft)
             .attr("stroke-opacity", d => d === 0 ? 1 : 0.1))
     
-    const line = d3.line()
+    const crowdCountLine = d3.line()
     .x(d => x(d.acp_ts))
     .y(d => y(d.crowdcount));
     
@@ -45,7 +49,19 @@ const plotMainGraph = (data, events, barcodes) => {
         .attr("stroke", "orange")
         .attr("stroke-width", 5)
         .attr("opacity", 0.5)
-        .attr("d", line);
+        .attr("d", crowdCountLine);
+
+    const varianceLine = d3.line()
+        .x(d => x(d.acp_ts))
+        .y(d => yVariance(d.variance));
+
+    svg.append("path")
+        .datum(variance)
+        .attr("fill", "none")
+        .attr("stroke", "blue")
+        .attr("stroke-width", 5)
+        .attr("opacity", 0.5)
+        .attr("d", varianceLine);
 
     svg.append("g")
         .attr("stroke", "#000")
@@ -83,6 +99,17 @@ const plotMainGraph = (data, events, barcodes) => {
         .attr("y1", marginTop)
         .attr("x2", e => x(e.acp_ts)) 
         .attr("y2", height - marginBottom);
+
+    svg.append("g")
+    .attr("stroke", "black")
+    .attr("stroke-opacity", 0.5)
+    .selectAll("line")
+    .data([data[data.length-1]])
+    .join("line")
+        .attr("x1", e => x(e.acp_ts))
+        .attr("y1", height - marginBottom)
+        .attr("x2", e => x(e.acp_ts)) 
+        .attr("y2", e => y(e.crowdcount));
 
     svg.append("g")
     .attr("stroke", "black")
