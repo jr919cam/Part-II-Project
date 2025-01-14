@@ -13,8 +13,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     node_published_data.append(str(msg.payload))
-    print(len(node_published_data))
-
+    
 client = mqtt.Client()
 client.username_pw_set("csn-node", "csn-node")
 

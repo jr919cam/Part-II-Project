@@ -42,27 +42,31 @@ class RollingSeatVarianceEngine():
     
     async def startVarianceEngine(self, ws: Websocket, startTs:float):
         ts = startTs
-        while True:
-            await asyncio.sleep(self.chunkTime/self.speed)
-            self.window.appendleft({"chunkCount": self.chunkCounter, "ts":ts + self.chunkTime/2})
-            ts += self.chunkTime
-            self.chunkCounter = 0
-            if len(self.window) == self.windowSize:
-                variance = np.var([chunk["chunkCount"] for chunk in self.window])
-                varianceTs = np.mean([chunk["ts"] for chunk in self.window])
-                await ws.send(json.dumps({"acp_ts":varianceTs, "variance":variance, "type":"reading", "readingType": "variance"}))
-                self.window.pop()
+        if self.seat != None:
+            while True:
+                await asyncio.sleep(self.chunkTime/self.speed)
+                self.window.appendleft({"chunkCount": self.chunkCounter, "ts":ts + self.chunkTime/2})
+                ts += self.chunkTime
+                self.chunkCounter = 0
+                if len(self.window) == self.windowSize:
+                    variance = np.var([chunk["chunkCount"] for chunk in self.window])
+                    varianceTs = np.mean([chunk["ts"] for chunk in self.window])
+                    await ws.send(json.dumps({"acp_ts":varianceTs, "variance":variance, "type":"reading", "readingType": "variance"}))
+                    self.window.pop()
     
     def incrementChunkCounter(self, seats_occupied):
         if self.seat in seats_occupied:
             self.chunkCounter += 1
 
-def getJSONDataList(day: int, startTimeStamp: int)->list[dict]:
+def getJSONDataList(day: int, startTimeStamp: int, endTimeStamp: int)->list[dict]:
     with open(f'node_22-28Jan/cerberus-node-lt1_2024-01-{day}.txt', 'r') as file:
         JSONDataList = [json.loads(dataLine[:-1]) for dataLine in file]
+        startIndex = None
         for i, reading in enumerate(JSONDataList):
-            if float(reading["acp_ts"]) >= startTimeStamp:
-                return JSONDataList[i:]
+            if startIndex == None and float(reading["acp_ts"]) >= startTimeStamp:
+                startIndex = i
+            if float(reading["acp_ts"]) >= endTimeStamp:
+                return JSONDataList[startIndex:i]
         return []
 
 @app.websocket("/ws")
@@ -71,18 +75,23 @@ async def websocket_feed(request, ws: Websocket):
     speed = float(request.args.get("speed"))
     day = request.args.get("day")
     startTime = request.args.get("startTime")
+    endTime = request.args.get("endTime")
     seat = request.args.get("seat")
 
     startDateObj= datetime.strptime(f"{startTime} {day}/{1}/{2024}", "%H:%M %d/%m/%Y")
     startTimestamp = int(time.mktime(startDateObj.timetuple()))
+    
+    endDateObj= datetime.strptime(f"{endTime} {day}/{1}/{2024}", "%H:%M %d/%m/%Y")
+    endTimestamp = int(time.mktime(endDateObj.timetuple()))
 
     synopsis = LectureBoundarySynopsis(0, alpha)
     varianceEngine = RollingSeatVarianceEngine(seat, speed=speed)
 
-    JSONDataList = getJSONDataList(day, startTimestamp)
+    JSONDataList = getJSONDataList(day, startTimestamp, endTimestamp)
     async def sendLoop():
         try:
             for t, reading in enumerate(JSONDataList):
+                startTime = time.time()
                 acp_ts, acp_id, crowdcount, seats_occupied = reading.values()
                 formattedReading = {"acp_ts":acp_ts,"acp_id":acp_id, "payload_cooked":{"crowdcount": crowdcount, "seats_occupied": seats_occupied}, "type":"reading", "readingType":"node"}
                 varianceEngine.incrementChunkCounter(seats_occupied)
@@ -92,7 +101,9 @@ async def websocket_feed(request, ws: Websocket):
                 if t == len(JSONDataList) - 1:
                     break
                 time_delta = float(JSONDataList[t+1]['acp_ts']) - float(formattedReading['acp_ts'])
-                await asyncio.sleep(time_delta/speed)
+                endTime = time.time()
+                sleepTime = max(time_delta - (endTime - startTime),0)
+                await asyncio.sleep(sleepTime/speed)
         except Exception as e:
             print(f"WebSocket connection closed: {e}")
     await asyncio.gather(

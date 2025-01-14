@@ -3,15 +3,17 @@ import plotSeatDiagram from "/infrastructure/atntv/simulatednode/plotSeatDiagram
 const simulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     if(wsObj.ws) {
         wsObj.ws.close()
-        console.log("closed")
     }
     event.preventDefault();
     const form = event.target.form;
+    const speed = form.speed.value;
     const day = form.day.value;
     const startTime = form.startTime.value;
+    const endTime = form.endTime.value;
     const seat = form.seat.value;
     console.log(day)
-    wsObj.ws = new WebSocket(`ws://localhost:8002/ws?speed=${configObj.speed}&day=${day}&startTime=${startTime}&seat=${seat}&alpha=${configObj.alpha}`);
+    wsObj.ws = new WebSocket(
+        `ws://localhost:8002/ws?speed=${speed}&day=${day}&startTime=${startTime}&endTime=${endTime}&seat=${seat}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
     wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj, seat);
     wsObj.ws.onopen = (event) => wsOnopen(proxiedDataArrObj);
@@ -32,7 +34,9 @@ const wsOnopen = (proxiedDataArrObj) => {
     proxiedDataArrObj.eventArr = []
     proxiedDataArrObj.barcodeArr = []
     proxiedDataArrObj.varianceArr = []
-    proxiedDataArrObj.isVisible = false
+    proxiedDataArrObj.seatHistoryArr = [],
+    proxiedDataArrObj.isVisible = false,
+    proxiedDataArrObj.wasVisible = false
 }
 
 const wsOnmessage = (event, proxiedDataArrObj, seat) => {
@@ -52,7 +56,14 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
 
     if(dataObject.type === "reading") {
         if(dataObject.readingType === "node") {
-            seatDiagramContainer.replaceChild(plotSeatDiagram(dataObject.payload_cooked.seats_occupied), seatDiagramContainer.firstChild)
+
+            dataObject.payload_cooked.seats_occupied.forEach(seat => {
+                if (!proxiedDataArrObj.seatHistoryArr.includes(seat)) {
+                    proxiedDataArrObj.seatHistoryArr.push(seat);
+                }
+            });
+            seatDiagramContainer.replaceChild(plotSeatDiagram(dataObject.payload_cooked.seats_occupied, proxiedDataArrObj.seatHistoryArr), seatDiagramContainer.firstChild)
+            
             dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
             dataList?.appendChild(dataLi);
             proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
@@ -81,6 +92,7 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
         lectureEventLi.textContent = `Boundary @ ${hours}:${minutes}:${seconds}`;
         lectureEvents?.appendChild(lectureEventLi);
         proxiedDataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"boundary"})
+        proxiedDataArrObj.seatHistoryArr = []
     }
 };
 

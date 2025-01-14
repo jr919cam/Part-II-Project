@@ -11,7 +11,7 @@
     import * as d3 from "https://d3js.org/d3.v7.min.js";
     import plotMainGraph from "/infrastructure/atntv/simulatednode/plotMainGraph.js";
 
-    const configObj = {speed: 10, alpha: 1/3};
+    const configObj = {alpha: 1/3};
 
     const wsObj = {};
 
@@ -20,6 +20,7 @@
         eventArr: [], 
         barcodeArr:[], 
         varianceArr:[],
+        seatHistoryArr:[],
         isVisible:false, 
         wasVisible:false
     }
@@ -43,11 +44,11 @@
         const logsContainer = document.getElementById("logsContainer")
         event.target.classList.toggle('active');
             if (event.target.classList.contains('active')) {
-                event.target.textContent = 'Show logs';
-                logsContainer.style.display = "none"
-            } else {
                 event.target.textContent = 'Hide logs';
                 logsContainer.style.display = "flex"
+            } else {
+                event.target.textContent = 'Show logs';
+                logsContainer.style.display = "none"
             }
     }
 </script>
@@ -73,19 +74,25 @@
             <label for="startTime" style="padding: 0 1vw 0 4vw;">Start time:</label>
             <input type="time" id="startTime" name="startTime" value="08:00">
 
+            <label for="endTime" style="padding: 0 1vw 0 4vw;">End time:</label>
+            <input type="time" id="endTime" name="endTime" value="08:00">
+
             <label for="seat" style="padding: 0 1vw 0 4vw;">Seat:</label>
             <input type="text" style="max-width: 5vw;" id="seat" name="seat">
+
+            <label for="speed" style="padding: 0 1vw 0 4vw;">Speed:</label>
+            <input type="number" style="max-width: 5vw;" id="speed" name="speed" value="1">
         </div>
         <button style="margin-bottom: 1vw; width:5vw; background-color: #d6edcc;" type="submit" onclick="handleSimulateFormSubmission(event)">Go!</button>
     </form>
     <div id='options'>
         <div display="flex">
-            <button id="toggleButton" onClick="toggleLogs(event)" style="margin-bottom: 1vw">Hide logs</button>
+            <button id="toggleButton" onClick="toggleLogs(event)" style="margin-bottom: 1vw">Show logs</button>
         </div>
     </div>
     
     <div style="display: flex; flex-direction: row;">
-        <div id="logsContainer" style="display: flex;">
+        <div id="logsContainer" style="display: none;">
             <div id="datacontainer" style="height: 80vh; overflow: scroll; padding: 1vw; background-color: #ede9cc; max-width: 10vw;">
                 <h3>Node readings</h3>
                 <div id="data"></div>
@@ -95,11 +102,11 @@
                 <div id="lectureEvents"></div>
             </div>
         </div>
-        <div style="display:flex; flex-direction: column; max-width: 50vw; margin-left: 1vw;">
-            <div id="chartContainer">
+        <div style="display:flex; max-width: 80vw; margin-left: 1vw;">
+            <div id="chartContainer" style="height: 75vh;">
                 <div id="chart"></div>
             </div>
-            <div id="seatDiagramContainer">
+            <div id="seatDiagramContainer" style="height: 75vh;">
                 <div id="seatDiagram"></div>
             </div>
         </div>

@@ -1,6 +1,6 @@
-const plotSeatDiagram = (seats) => {
-    const width = 928;
-    const height = 928;
+const plotSeatDiagram = (seats, seatsHistory) => {
+    const width = 600;
+    const height = 600;
 
     const mHorizontalSeatGap = width/31.9
     const mVerticalSeatGap = height/17.45
@@ -10,7 +10,7 @@ const plotSeatDiagram = (seats) => {
     const lColumnStart = height/1.347
     const lRowStart = width/33
     const lHorizontalSeatGap = width/34.5
-    const lVerticalSeatGap = height/17.4
+    const lVerticalSeatGap = height/17.35
     const lVerticalOffset = height/200
 
     const rColumnStart = height/1.35
@@ -49,13 +49,23 @@ const plotSeatDiagram = (seats) => {
             .attr("width", width)
             .attr("height", height);
 
-    svg.selectAll("circle")
+    svg.selectAll(".seatHistoryCircle")
+        .data(seatsHistory)
+        .enter()
+        .append("circle")
+        .attr("cx", s => mapSeatToPixel[s][0])
+        .attr("cy", s => mapSeatToPixel[s][1])
+        .attr("r", 8)
+        .attr("fill", "orange")
+        .attr("opacity", 0.4);
+    
+    svg.selectAll(".seatCircle")
         .data(seats)
         .enter()
         .append("circle")
         .attr("cx", s => mapSeatToPixel[s][0])
         .attr("cy", s => mapSeatToPixel[s][1])
-        .attr("r", 6)
+        .attr("r", 4)
         .attr("fill", "red");
 
     return svg.node()
