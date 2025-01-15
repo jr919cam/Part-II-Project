@@ -11,7 +11,10 @@
     import * as d3 from "https://d3js.org/d3.v7.min.js";
     import plotMainGraph from "/infrastructure/atntv/simulatednode/plotMainGraph.js";
 
-    const configObj = {alpha: 1/3};
+    const graphWidth = 1800;
+    const graphHeight = 600;
+
+    const configObj = {alpha: 1/4};
 
     const wsObj = {};
 
@@ -31,7 +34,7 @@
                 return (...args) => {
                     Array.prototype.push.apply(target.dataArr, args);
                     const oldChart = document.getElementById("chart")
-                    oldChart.replaceWith(plotMainGraph(target.dataArr, target.eventArr, target.barcodeArr, target.varianceArr));
+                    oldChart.replaceWith(plotMainGraph(target.dataArr, target.eventArr, target.barcodeArr, target.varianceArr, graphHeight, graphWidth));
                 };
             }
             return Reflect.get(target, property);
@@ -50,6 +53,39 @@
                 event.target.textContent = 'Show logs';
                 logsContainer.style.display = "none"
             }
+    }
+    window.downloadGraphSVG = (event) => {
+        const svg = document.getElementById("chart");
+        if (svg && svg instanceof SVGElement) {
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svg);
+
+            const canvas = document.createElement("canvas");
+            canvas.width = graphWidth;
+            canvas.height = graphHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const img = new Image();
+            const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = function () {
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+
+                const pngUrl = canvas.toDataURL("image/png");
+
+                const a = document.createElement("a");
+                a.href = pngUrl;
+                a.download = "example.png";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            img.src = url;
+        }
     }
 </script>
 
@@ -86,6 +122,7 @@
         <button style="margin-bottom: 1vw; width:5vw; background-color: #d6edcc;" type="submit" onclick="handleSimulateFormSubmission(event)">Go!</button>
     </form>
     <div id='options'>
+        <button id="downloadBtn" onclick="downloadGraphSVG(event)">Download Graph</button>
         <div display="flex">
             <button id="toggleButton" onClick="toggleLogs(event)" style="margin-bottom: 1vw">Show logs</button>
         </div>

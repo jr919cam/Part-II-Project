@@ -1,9 +1,7 @@
-const plotMainGraph = (data, events, barcodes, variance) => {
-    const width = 928;
-    const height = 600;
+const plotMainGraph = (data, events, barcodes, variance, height, width) => {
     const marginTop = 20;
     const marginRight = 30;
-    const marginBottom = 30;
+    const marginBottom = 45;
     const marginLeft = 40;
   
     const x = d3.scaleLinear()
@@ -27,17 +25,23 @@ const plotMainGraph = (data, events, barcodes, variance) => {
   
     svg.append("g")
         .attr("transform", `translate(0,${height - marginBottom})`)
-        .call(d3.axisBottom(x).ticks(width / 80).tickFormat(d=>d3.timeFormat("%H:%M:%S")(d*1000)))
-        .call(g => g.select(".domain").remove());
+        .call(d3.axisBottom(x).ticks(width / 150).tickFormat(d=>d3.timeFormat("%H:%M:%S")(d*1000)))
+        .call(g => g.select(".domain").remove())
+        .call(g => g.selectAll(".tick text")
+            .style("font-size", "20px")
+        );
   
     svg.append("g")
         .attr("transform", `translate(${marginLeft},0)`)
-        .call(d3.axisLeft(y).ticks(d3.min([50, d3.max(data, d=>d.crowdcount)])).tickFormat(d3.format('d')))
+        .call(d3.axisLeft(y).ticks(d3.min([10, d3.max(data, d=>d.crowdcount)])).tickFormat(d3.format('d')))
         .call(g => g.select(".domain").remove())
         .call(g => g.selectAll(".tick line")
           .clone()
             .attr("x2", width - marginRight - marginLeft)
             .attr("stroke-opacity", d => d === 0 ? 1 : 0.1))
+        .call(g => g.selectAll(".tick text")
+            .style("font-size", "20px")
+        );
     
     const crowdCountLine = d3.line()
     .x(d => x(d.acp_ts))
@@ -75,16 +79,16 @@ const plotMainGraph = (data, events, barcodes, variance) => {
 
     svg.append("text")
     .attr("x", width / 2)
-    .attr("y", height + 5)
+    .attr("y", height + 2)
     .attr("text-anchor", "middle")
-    .attr("font-size", "12px")
+    .attr("font-size", "25px")
     .text("ACP Timestamp (HH:MM:SS)");
 
     svg.append("text")
     .attr("x", -height / 2)
-    .attr("y", 15)
+    .attr("y", 5)
     .attr("text-anchor", "middle")
-    .attr("font-size", "12px")
+    .attr("font-size", "25px")
     .attr("transform", "rotate(-90)")
     .text("Crowd Count");
 
@@ -92,6 +96,7 @@ const plotMainGraph = (data, events, barcodes, variance) => {
     .attr("stroke", "red")
     .attr("stroke-opacity", 0.5)
     .attr("stroke-dasharray", "4,2")
+    .attr("stroke-width", 4)
     .selectAll("line")
     .data(events)
     .join("line")
