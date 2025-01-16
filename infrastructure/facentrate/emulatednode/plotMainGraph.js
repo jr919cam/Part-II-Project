@@ -1,4 +1,7 @@
-const plotMainGraph = (data, events, barcodes, variance, height, width, startTime, endTime, day) => {
+const plotMainGraph = (data, events, barcodes, variance, piePercent, height, width, startTime, endTime, day) => {
+    const radius = Math.min(width, height) / 8;
+    const piePercentObjArr = [{value: piePercent}, {value: 100 - piePercent}];
+
     const startTimeString = `2024-01-${day}T${startTime}:00`;
     const start = new Date(startTimeString);
     const startTimeStamp = Math.floor(start.getTime() / 1000);
@@ -133,6 +136,31 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
         .attr("width", (b) => x(b.end_acp_ts) - x(b.start_acp_ts))
         .attr("height", 150)
         .attr("fill-opacity", 0.5);
+    
+    const pieGroup = svg.append("g")
+    .attr("transform", `translate(${width - radius - 10}, ${radius + 10})`);
+
+    const pie = d3.pie().value(d => d.value);
+    const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
+
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    const arcs = pieGroup.selectAll("arc")
+        .data(pie(data))
+        .enter()
+        .append("g")
+        .attr("class", "arc");
+    
+    arcs.append("path")
+        .attr("d", arc)
+        .attr("fill", (d, i) => color(i));
+    
+    arcs.append("text")
+        .attr("transform", d => `translate(${arc.centroid(d)})`)
+        .attr("text-anchor", "middle")
+        .text(d => d.data.label);
   
     return svg.node();
 }
