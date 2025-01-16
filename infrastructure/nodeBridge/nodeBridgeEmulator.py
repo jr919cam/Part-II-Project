@@ -7,7 +7,7 @@ import json
 import numpy as np
 from collections import deque
 
-app = Sanic("nodeBridgeSimulator")
+app = Sanic("nodeBridgeEmulator")
 
 data = []
 
@@ -26,7 +26,7 @@ class LectureBoundarySynopsis():
         if self.timeSinceLastEvent >= 0 and self.timeSinceLastEvent < 10 * 60:
             self.timeSinceLastEvent += timeDelta
             return False
-        if abs((self.EMA * 4.5 / (np.log(JSONDataList[t]['crowdcount'] + 1) + 1))) < 1:
+        if abs((self.EMA * 5 / (np.log(JSONDataList[t]['crowdcount'] + 1) + 1))) < 1:
             return False
         self.timeSinceLastEvent = 0
         return True

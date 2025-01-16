@@ -1,11 +1,19 @@
-const plotMainGraph = (data, events, barcodes, variance, height, width) => {
+const plotMainGraph = (data, events, barcodes, variance, height, width, startTime, endTime, day) => {
+    const startTimeString = `2024-01-${day}T${startTime}:00`;
+    const start = new Date(startTimeString);
+    const startTimeStamp = Math.floor(start.getTime() / 1000);
+
+    const endTimeString = `2024-01-${day}T${endTime}:00`;
+    const end = new Date(endTimeString);
+    const endTimeStamp = Math.floor(end.getTime() / 1000);
+
     const marginTop = 20;
     const marginRight = 30;
     const marginBottom = 45;
     const marginLeft = 40;
-  
+
     const x = d3.scaleLinear()
-        .domain(d3.extent(data, d => d.acp_ts)).nice()
+        .domain([startTimeStamp, endTimeStamp])
         .range([marginLeft, width - marginRight]);
   
     const y = d3.scaleLinear()
@@ -22,15 +30,13 @@ const plotMainGraph = (data, events, barcodes, variance, height, width) => {
         .attr("viewBox", [0, 0, width, height + 10])
         .attr("style", "max-width: 100%; height: auto; border:1px solid black;")
         .attr("id", "chart")
-  
+
     svg.append("g")
         .attr("transform", `translate(0,${height - marginBottom})`)
-        .call(d3.axisBottom(x).ticks(width / 150).tickFormat(d=>d3.timeFormat("%H:%M:%S")(d*1000)))
+        .call(d3.axisBottom(x).ticks((width / 150)).tickFormat(d => d3.timeFormat("%H:%M:%S")(d * 1000)))
         .call(g => g.select(".domain").remove())
-        .call(g => g.selectAll(".tick text")
-            .style("font-size", "20px")
-        );
-  
+        .call(g => g.selectAll(".tick text").style("font-size", "20px"));
+    
     svg.append("g")
         .attr("transform", `translate(${marginLeft},0)`)
         .call(d3.axisLeft(y).ticks(d3.min([10, d3.max(data, d=>d.crowdcount)])).tickFormat(d3.format('d')))

@@ -1,0 +1,22 @@
+li {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #d5edcc;
+    margin: 0.5vh;
+    padding: 0.5vh;
+    border-radius: 0.5vh;
+}
+
+a {
+    color: black;
+    text-decoration: none;
+}
+
+ul {
+    justify-content: center;
+    align-items: center;
+    width: 25vw;
+    text-align: center;
+}

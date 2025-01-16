@@ -1,6 +1,6 @@
-import plotSeatDiagram from "/infrastructure/atntv/simulatednode/plotSeatDiagram.js";
+import plotSeatDiagram from "/infrastructure/facentrate/emulatednode/plotSeatDiagram.js";
 
-const simulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
+const emulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     if(wsObj.ws) {
         wsObj.ws.close()
     }
@@ -100,4 +100,4 @@ const wsOnclose = (event) => {
     console.log('Closed');
 };
 
-export default simulateDay
+export default emulateDay
