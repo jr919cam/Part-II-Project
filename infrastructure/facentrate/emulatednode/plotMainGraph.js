@@ -1,6 +1,7 @@
-const plotMainGraph = (data, events, barcodes, variance, piePercent, height, width, startTime, endTime, day) => {
+const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrationEdges, wholeRoomStability, height, width, startTime, endTime, day) => {
     const radius = Math.min(width, height) / 8;
-    const piePercentObjArr = [{value: piePercent}, {value: 100 - piePercent}];
+    const piePercentObjArr = [{value: piePercent, color: 'orange'}, {value: 1 - piePercent, color: 'white'}];
+    const pieEdgesObjArr = [{value: Math.pow(Math.E, -concentrationEdges/10), color: 'blue'}, {value: 1 - Math.pow(Math.E, -concentrationEdges/10), color: 'white'}];
 
     const startTimeString = `2024-01-${day}T${startTime}:00`;
     const start = new Date(startTimeString);
@@ -26,6 +27,10 @@ const plotMainGraph = (data, events, barcodes, variance, piePercent, height, wid
     const yVariance = d3.scaleLinear()
         .domain([0, d3.max(variance, v=>v.variance)]).nice()
         .range([height - marginBottom, marginTop + height/2]);
+
+    const yStability = d3.scaleLinear()
+        .domain([0, d3.max(wholeRoomStability.seatsOccupiedDiffCount, s=>s.value)]).nice()
+        .range([marginTop + 4*height/5, height - marginBottom]);
   
     const svg = d3.create("svg")
         .attr("width", width)
@@ -102,17 +107,17 @@ const plotMainGraph = (data, events, barcodes, variance, piePercent, height, wid
     .text("Crowd Count");
 
     svg.append("g")
-    .attr("stroke", "red")
-    .attr("stroke-opacity", 0.5)
-    .attr("stroke-dasharray", "4,2")
-    .attr("stroke-width", 4)
     .selectAll("line")
     .data(events)
     .join("line")
         .attr("x1", e => x(e.acp_ts))
         .attr("y1", marginTop)
         .attr("x2", e => x(e.acp_ts)) 
-        .attr("y2", height - marginBottom);
+        .attr("y2", height - marginBottom)
+    .attr("stroke", e=>e.event_type === "lectureUp" ? "green" : "red")
+    .attr("stroke-opacity", 0.5)
+    .attr("stroke-dasharray", "4,2")
+    .attr("stroke-width", 7);
 
     svg.append("g")
     .attr("stroke", "black")
@@ -136,32 +141,62 @@ const plotMainGraph = (data, events, barcodes, variance, piePercent, height, wid
         .attr("width", (b) => x(b.end_acp_ts) - x(b.start_acp_ts))
         .attr("height", 150)
         .attr("fill-opacity", 0.5);
-    
-    const pieGroup = svg.append("g")
-    .attr("transform", `translate(${width - radius - 10}, ${radius + 10})`);
 
-    const pie = d3.pie().value(d => d.value);
-    const arc = d3.arc()
-        .innerRadius(0)
-        .outerRadius(radius);
+    const seatsOccupiedDiffLine = d3.line()
+        .x(d => x(d.acp_ts))
+        .y(d => yStability(d.value));
 
-    const color = d3.scaleOrdinal(d3.schemeCategory10);
+    svg.append("path")
+        .datum(wholeRoomStability.seatsOccupiedDiffCount)
+        .attr("fill", "none")
+        .attr("stroke", "green")
+        .attr("stroke-width", 2)
+        .attr("opacity", 0.8)
+        .attr("d", seatsOccupiedDiffLine);
 
-    const arcs = pieGroup.selectAll("arc")
-        .data(pie(data))
-        .enter()
-        .append("g")
-        .attr("class", "arc");
-    
-    arcs.append("path")
-        .attr("d", arc)
-        .attr("fill", (d, i) => color(i));
-    
-    arcs.append("text")
-        .attr("transform", d => `translate(${arc.centroid(d)})`)
-        .attr("text-anchor", "middle")
-        .text(d => d.data.label);
-  
+    if(piePercent !== null && piePercent !== undefined) {
+        const pieGroup = svg.append("g")
+        .attr("transform", `translate(${width - radius - 10}, ${radius + 10})`);
+
+        const pie = d3.pie().value(d => d.value);
+        const arc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(radius);
+
+        const arcs = pieGroup.selectAll("arc")
+            .data(pie(piePercentObjArr))
+            .enter()
+            .append("g")
+            .attr("class", "arc");
+        
+        arcs.append("path")
+            .attr("d", arc)
+            .attr("fill", d=>d.data.color)
+            .attr("stroke", "black")
+            .attr("opacity", 0.5);
+    }
+
+    if(concentrationEdges !== null && concentrationEdges !== undefined) {
+        const pieGroupEdges = svg.append("g")
+        .attr("transform", `translate(${width - radius - 10}, ${radius * 3 + 20})`);
+
+        const pie = d3.pie().value(d => d.value);
+        const arc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(radius);
+
+        const arcs = pieGroupEdges.selectAll("arc")
+            .data(pie(pieEdgesObjArr))
+            .enter()
+            .append("g")
+            .attr("class", "arc");
+        
+        arcs.append("path")
+            .attr("d", arc)
+            .attr("fill", d=>d.data.color)
+            .attr("stroke", "black")
+            .attr("opacity", 0.5);
+    }
     return svg.node();
 }
 

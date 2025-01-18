@@ -16,10 +16,10 @@ const emulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
         `ws://localhost:8002/ws?speed=${speed}&day=${day}&startTime=${startTime}&endTime=${endTime}&seat=${seat}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
     wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj, seat);
-    wsObj.ws.onopen = (event) => wsOnopen(proxiedDataArrObj);
+    wsObj.ws.onopen = (event) => wsOnopen(proxiedDataArrObj, seat);
 }
 
-const wsOnopen = (proxiedDataArrObj) => {
+const wsOnopen = (proxiedDataArrObj, seat) => {
     const oldData = document.getElementById("data");
     const newData = document.createElement("div");
     newData.id = "data"
@@ -35,6 +35,9 @@ const wsOnopen = (proxiedDataArrObj) => {
     proxiedDataArrObj.barcodeArr = []
     proxiedDataArrObj.varianceArr = []
     proxiedDataArrObj.seatHistoryArr = [],
+    proxiedDataArrObj.percentageConcentration = null,
+    proxiedDataArrObj.concentrationEdges = seat ? 0 : null,
+    proxiedDataArrObj.wholeRoomStability = {seatsOccupiedDiffCountTotal: 0, seatsOccupiedDiffCount: []},
     proxiedDataArrObj.isVisible = false,
     proxiedDataArrObj.wasVisible = false
 }
@@ -64,9 +67,16 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
             });
             seatDiagramContainer.replaceChild(plotSeatDiagram(dataObject.payload_cooked.seats_occupied, proxiedDataArrObj.seatHistoryArr), seatDiagramContainer.firstChild)
             
+            proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount.push({value: dataObject.payload_cooked.seatsOccupiedDiffCount, acp_ts: +dataObject.acp_ts})
+            proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCountTotal = dataObject.payload_cooked.seatsOccupiedDiffCountTotal
+
             dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
             dataList?.appendChild(dataLi);
             proxiedDataArrObj.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount})
+
+            if(dataObject.payload_cooked.percent_concentration !== undefined) {  
+                proxiedDataArrObj.percentageConcentration = dataObject.payload_cooked.percent_concentration
+            }
 
             if(proxiedDataArrObj.isVisible) {
                 proxiedDataArrObj.barcodeArr[proxiedDataArrObj.barcodeArr.length-1].end_acp_ts = dataObject.acp_ts
@@ -75,11 +85,16 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
             }
             if(dataObject.payload_cooked.seats_occupied.includes(seat)) {
                 if(!proxiedDataArrObj.wasVisible) {
+                    // init a bar
                     proxiedDataArrObj.barcodeArr.push({start_acp_ts: dataObject.acp_ts, end_acp_ts: dataObject.acp_ts})
+                    proxiedDataArrObj.concentrationEdges += 1
                 }
                 proxiedDataArrObj.isVisible = true
             } else {
-                proxiedDataArrObj.wasVisible = false
+                if(proxiedDataArrObj.wasVisible) {
+                    proxiedDataArrObj.concentrationEdges += 1
+                    proxiedDataArrObj.wasVisible = false
+                }
             }
         } 
         if (dataObject.readingType === "variance") {
@@ -88,11 +103,19 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
     }
     
     if(dataObject.type === "event"){
-        const lectureEventLi = document.createElement("li")
-        lectureEventLi.textContent = `Boundary @ ${hours}:${minutes}:${seconds}`;
-        lectureEvents?.appendChild(lectureEventLi);
-        proxiedDataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"boundary"})
-        proxiedDataArrObj.seatHistoryArr = []
+        if(dataObject.eventType === "lectureUp") {
+            proxiedDataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"lectureUp"})
+            const lectureEventLi = document.createElement("li")
+            lectureEventLi.textContent = `Lecture up @ ${hours}:${minutes}:${seconds}`;
+            lectureEvents?.appendChild(lectureEventLi);
+            proxiedDataArrObj.seatHistoryArr = []
+        }
+        if(dataObject.eventType === "lectureDown") {
+            proxiedDataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"lectureDown"})
+            const lectureEventLi = document.createElement("li")
+            lectureEventLi.textContent = `Lecture down @ ${hours}:${minutes}:${seconds}`;
+            lectureEvents?.appendChild(lectureEventLi);
+        }
     }
 };
 
