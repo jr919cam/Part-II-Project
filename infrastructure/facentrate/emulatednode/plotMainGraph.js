@@ -1,4 +1,4 @@
-const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrationEdges, wholeRoomStability, height, width, startTime, endTime, day) => {
+const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrationEdges, height, width, startTime, endTime, day) => {
     const radius = Math.min(width, height) / 8;
     const piePercentObjArr = [{value: piePercent, color: 'orange'}, {value: 1 - piePercent, color: 'white'}];
     const pieEdgesObjArr = [{value: Math.pow(Math.E, -concentrationEdges/10), color: 'blue'}, {value: 1 - Math.pow(Math.E, -concentrationEdges/10), color: 'white'}];
@@ -27,10 +27,6 @@ const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrati
     const yVariance = d3.scaleLinear()
         .domain([0, d3.max(variance, v=>v.variance)]).nice()
         .range([height - marginBottom, marginTop + height/2]);
-
-    const yStability = d3.scaleLinear()
-        .domain([0, d3.max(wholeRoomStability.seatsOccupiedDiffCount, s=>s.value)]).nice()
-        .range([marginTop + 4*height/5, height - marginBottom]);
   
     const svg = d3.create("svg")
         .attr("width", width)
@@ -141,18 +137,6 @@ const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrati
         .attr("width", (b) => x(b.end_acp_ts) - x(b.start_acp_ts))
         .attr("height", 150)
         .attr("fill-opacity", 0.5);
-
-    const seatsOccupiedDiffLine = d3.line()
-        .x(d => x(d.acp_ts))
-        .y(d => yStability(d.value));
-
-    svg.append("path")
-        .datum(wholeRoomStability.seatsOccupiedDiffCount)
-        .attr("fill", "none")
-        .attr("stroke", "green")
-        .attr("stroke-width", 2)
-        .attr("opacity", 0.8)
-        .attr("d", seatsOccupiedDiffLine);
 
     if(piePercent !== null && piePercent !== undefined) {
         const pieGroup = svg.append("g")

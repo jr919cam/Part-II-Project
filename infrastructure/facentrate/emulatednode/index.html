@@ -10,6 +10,7 @@
     import emulateDay from "/infrastructure/facentrate/emulatednode/emulateDay.js"
     import * as d3 from "https://d3js.org/d3.v7.min.js";
     import plotMainGraph from "/infrastructure/facentrate/emulatednode/plotMainGraph.js";
+    import plotStabilityGraph from "/infrastructure/facentrate/emulatednode/plotStabilityGraph.js";
 
     const graphWidth = 1800;
     const graphHeight = 600;
@@ -37,9 +38,12 @@
                 return (...args) => {
                     Array.prototype.push.apply(target.dataArr, args);
                     const oldChart = document.getElementById("chart")
+                    const oldStabilityChart = document.getElementById("stabilityChart")
+
                     const endTime = document.getElementById("endTime")
                     const startTime = document.getElementById("startTime")
                     const day = document.getElementById("dayDropdown")
+
                     oldChart.replaceWith(
                         plotMainGraph(
                             target.dataArr, 
@@ -48,8 +52,17 @@
                             target.varianceArr, 
                             target.percentageConcentration,
                             target.concentrationEdges,
-                            target.wholeRoomStability,
                             graphHeight, 
+                            graphWidth,
+                            startTime.value,
+                            endTime.value,
+                            day.value,
+                        )
+                    );
+                    oldStabilityChart.replaceWith(
+                        plotStabilityGraph(
+                            target.wholeRoomStability,
+                            graphHeight/2,
                             graphWidth,
                             startTime.value,
                             endTime.value,
@@ -133,16 +146,16 @@
             </select>
 
             <label for="startTime" style="padding: 0 1vw 0 4vw;">Start time:</label>
-            <input type="time" id="startTime" name="startTime" value="08:00">
+            <input type="time" id="startTime" name="startTime" value="09:00">
 
             <label for="endTime" style="padding: 0 1vw 0 4vw;">End time:</label>
-            <input type="time" id="endTime" name="endTime" value="08:00">
+            <input type="time" id="endTime" name="endTime" value="10:00">
 
             <label for="seat" style="padding: 0 1vw 0 4vw;">Seat:</label>
             <input type="text" style="max-width: 5vw;" id="seat" name="seat">
 
             <label for="speed" style="padding: 0 1vw 0 4vw;">Speed:</label>
-            <input type="number" style="max-width: 5vw;" id="speed" name="speed" value="1">
+            <input type="number" style="max-width: 5vw;" id="speed" name="speed" value="100">
         </div>
         <button style="margin-bottom: 1vw; width:5vw; background-color: #d6edcc;" type="submit" onclick="handleemulateFormSubmission(event)">Go!</button>
     </form>
@@ -164,11 +177,16 @@
                 <div id="lectureEvents"></div>
             </div>
         </div>
-        <div style="display:flex; max-width: 80vw; margin-left: 1vw;">
-            <div id="chartContainer" style="height: 75vh;">
-                <div id="chart"></div>
+        <div style="display:flex; max-width: 80vw; margin-left: 1vw;"></div>
+            <div style="display:flex; flex-direction: column; max-width: 80vw; margin-left: 1vw;">
+                <div id="chartContainer">
+                    <div id="chart"></div>
+                </div>
+                <div id="stabilityChartContainer" style="height: 75vh;">
+                    <div id="stabilityChart"></div>
+                </div>
             </div>
-            <div id="seatDiagramContainer" style="height: 75vh;">
+            <div id="seatDiagramContainer">
                 <div id="seatDiagram"></div>
             </div>
         </div>

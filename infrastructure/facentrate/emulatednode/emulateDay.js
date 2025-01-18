@@ -67,7 +67,10 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
             });
             seatDiagramContainer.replaceChild(plotSeatDiagram(dataObject.payload_cooked.seats_occupied, proxiedDataArrObj.seatHistoryArr), seatDiagramContainer.firstChild)
             
-            proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount.push({value: dataObject.payload_cooked.seatsOccupiedDiffCount, acp_ts: +dataObject.acp_ts})
+            const prevDiffCount = proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount[proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount.length-1] ?? {value: 0}
+            const diffCountValue = prevDiffCount.value > 0 ? prevDiffCount.value/2 + dataObject.payload_cooked.seatsOccupiedDiffCount : dataObject.payload_cooked.seatsOccupiedDiffCount
+            console.log(diffCountValue)
+            proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount.push({value: diffCountValue, acp_ts: +dataObject.acp_ts})
             proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCountTotal = dataObject.payload_cooked.seatsOccupiedDiffCountTotal
 
             dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
