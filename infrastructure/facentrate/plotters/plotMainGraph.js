@@ -1,8 +1,4 @@
-const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrationEdges, height, width, startTime=null, endTime=null, day=null) => {
-    const radius = Math.min(width, height) / 8;
-    const piePercentObjArr = [{value: piePercent, color: 'orange'}, {value: 1 - piePercent, color: 'white'}];
-    const pieEdgesObjArr = [{value: Math.pow(Math.E, -concentrationEdges/10), color: 'blue'}, {value: 1 - Math.pow(Math.E, -concentrationEdges/10), color: 'white'}];
-
+const plotMainGraph = (data, events, barcodes, variance, height, width, startTime=null, endTime=null, day=null) => {
     const startTimeString = `2024-01-${day}T${startTime}:00`;
     const start = new Date(startTimeString);
     const startTimeStamp = Math.floor(start.getTime() / 1000);
@@ -140,49 +136,6 @@ const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrati
         .attr("height", 150)
         .attr("fill-opacity", 0.5);
 
-    if(piePercent !== null && piePercent !== undefined) {
-        const pieGroup = svg.append("g")
-        .attr("transform", `translate(${width - radius - 10}, ${radius + 10})`);
-
-        const pie = d3.pie().value(d => d.value);
-        const arc = d3.arc()
-            .innerRadius(0)
-            .outerRadius(radius);
-
-        const arcs = pieGroup.selectAll("arc")
-            .data(pie(piePercentObjArr))
-            .enter()
-            .append("g")
-            .attr("class", "arc");
-        
-        arcs.append("path")
-            .attr("d", arc)
-            .attr("fill", d=>d.data.color)
-            .attr("stroke", "black")
-            .attr("opacity", 0.5);
-    }
-
-    if(concentrationEdges !== null && concentrationEdges !== undefined) {
-        const pieGroupEdges = svg.append("g")
-        .attr("transform", `translate(${width - radius - 10}, ${radius * 3 + 20})`);
-
-        const pie = d3.pie().value(d => d.value);
-        const arc = d3.arc()
-            .innerRadius(0)
-            .outerRadius(radius);
-
-        const arcs = pieGroupEdges.selectAll("arc")
-            .data(pie(pieEdgesObjArr))
-            .enter()
-            .append("g")
-            .attr("class", "arc");
-        
-        arcs.append("path")
-            .attr("d", arc)
-            .attr("fill", d=>d.data.color)
-            .attr("stroke", "black")
-            .attr("opacity", 0.5);
-    }
     return svg.node();
 }
 

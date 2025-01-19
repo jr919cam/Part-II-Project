@@ -11,6 +11,7 @@
     import * as d3 from "https://d3js.org/d3.v7.min.js";
     import plotMainGraph from "/infrastructure/facentrate/plotters/plotMainGraph.js";
     import plotStabilityGraph from "/infrastructure/facentrate/plotters/plotStabilityGraph.js";
+    import plotSeatMetricsDiagram from "/infrastructure/facentrate/plotters/plotSeatMetricsDiagram.js"
 
     const graphWidth = 1800;
     const graphHeight = 600;
@@ -39,6 +40,7 @@
                     Array.prototype.push.apply(target.dataArr, args);
                     const oldChart = document.getElementById("chart")
                     const oldStabilityChart = document.getElementById("stabilityChart")
+                    const oldSeatMetricsDiagram = document.getElementById("seatMetricsDiagram")
 
                     const endTime = document.getElementById("endTime")
                     const startTime = document.getElementById("startTime")
@@ -50,8 +52,6 @@
                             target.eventArr, 
                             target.barcodeArr, 
                             target.varianceArr, 
-                            target.percentageConcentration,
-                            target.concentrationEdges,
                             graphHeight, 
                             graphWidth,
                             startTime.value,
@@ -67,6 +67,12 @@
                             startTime.value,
                             endTime.value,
                             day.value,
+                        )
+                    );
+                    oldSeatMetricsDiagram.replaceWith(
+                        plotSeatMetricsDiagram(
+                            target.percentageConcentration,
+                            target.concentrationEdges,
                         )
                     );
                 };
@@ -186,8 +192,13 @@
                     <div id="stabilityChart"></div>
                 </div>
             </div>
-            <div id="seatDiagramContainer">
-                <div id="seatDiagram"></div>
+            <div style="display: flex; flex-direction: column;">
+                <div id="seatDiagramContainer">
+                    <div id="seatDiagram"></div>
+                </div>
+                <div id="seatMetricsDiagramContainer" style="max-height: 10vh;">
+                    <div id="seatMetricsDiagram"></div>
+                </div>
             </div>
         </div>
     </div>
