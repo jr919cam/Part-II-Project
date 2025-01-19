@@ -1,4 +1,4 @@
-import plotSeatDiagram from "/infrastructure/facentrate/emulatednode/plotSeatDiagram.js";
+import plotSeatDiagram from "/infrastructure/facentrate/plotters/plotSeatDiagram.js";
 
 const emulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     if(wsObj.ws) {
@@ -69,7 +69,6 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
             
             const prevDiffCount = proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount[proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount.length-1] ?? {value: 0}
             const diffCountValue = prevDiffCount.value > 0 ? prevDiffCount.value/2 + dataObject.payload_cooked.seatsOccupiedDiffCount : dataObject.payload_cooked.seatsOccupiedDiffCount
-            console.log(diffCountValue)
             proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount.push({value: diffCountValue, acp_ts: +dataObject.acp_ts})
             proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCountTotal = dataObject.payload_cooked.seatsOccupiedDiffCountTotal
 

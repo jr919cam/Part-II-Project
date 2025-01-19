@@ -1,4 +1,4 @@
-const plotStabilityGraph = (wholeRoomStability, height, width, startTime, endTime, day) => {
+const plotStabilityGraph = (wholeRoomStability, height, width, startTime=null, endTime=null, day=null) => {
     const startTimeString = `2024-01-${day}T${startTime}:00`;
     const start = new Date(startTimeString);
     const startTimeStamp = Math.floor(start.getTime() / 1000);
@@ -12,8 +12,10 @@ const plotStabilityGraph = (wholeRoomStability, height, width, startTime, endTim
     const marginBottom = 45;
     const marginLeft = 40;
 
-    const x = d3.scaleLinear()
-        .domain([startTimeStamp, endTimeStamp])
+    const x = startTime && endTime ? 
+        d3.scaleLinear().domain([startTimeStamp, endTimeStamp])
+        .range([marginLeft, width - marginRight]) :
+        d3.scaleLinear().domain(d3.extent(wholeRoomStability.seatsOccupiedDiffCount, s=>s.acp_ts)).nice()
         .range([marginLeft, width - marginRight]);
 
     const y = d3.scaleLinear()

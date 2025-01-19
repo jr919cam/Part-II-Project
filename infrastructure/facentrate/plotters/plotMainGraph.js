@@ -1,4 +1,4 @@
-const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrationEdges, height, width, startTime, endTime, day) => {
+const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrationEdges, height, width, startTime=null, endTime=null, day=null) => {
     const radius = Math.min(width, height) / 8;
     const piePercentObjArr = [{value: piePercent, color: 'orange'}, {value: 1 - piePercent, color: 'white'}];
     const pieEdgesObjArr = [{value: Math.pow(Math.E, -concentrationEdges/10), color: 'blue'}, {value: 1 - Math.pow(Math.E, -concentrationEdges/10), color: 'white'}];
@@ -16,8 +16,10 @@ const plotMainGraph = (data, events, barcodes, variance, piePercent, concentrati
     const marginBottom = 45;
     const marginLeft = 40;
 
-    const x = d3.scaleLinear()
-        .domain([startTimeStamp, endTimeStamp])
+    const x = startTime && endTime ? 
+        d3.scaleLinear().domain([startTimeStamp, endTimeStamp])
+        .range([marginLeft, width - marginRight]) :
+        d3.scaleLinear().domain(d3.extent(data, d=>d.acp_ts)).nice()
         .range([marginLeft, width - marginRight]);
   
     const y = d3.scaleLinear()

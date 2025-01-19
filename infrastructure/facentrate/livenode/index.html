@@ -7,16 +7,79 @@
 </head>
 <body>
     <h1>Real-Time Node Data</h1>
-    <div style="height: 80vh; overflow-y: hidden; padding: 1vw; margin-left: 5vw; background-color: #CCE3ED; width: 25vw;">
-        <div id="data"></div>
+    <div display="flex">
+        <button id="toggleButton" onClick="toggleLogs(event)" style="margin-bottom: 1vw">Show logs</button>
     </div>
-    <script>
+    <div style="display:flex;">
+        <div id="logsContainer" style="display: none;">
+            <div style="height: 80vh; overflow-y: hidden; padding: 1vw; background-color: #CCE3ED; width: 10vw;">
+                <div id="data"></div>
+            </div>
+        </div>
+        <div style="display: flex; max-width: 80vw;">
+            <div style="display: flex; flex-direction: column; margin-left: 1vw; max-height: 75vh;  max-width: 70vw;">
+                <div id="chartContainer">
+                    <div id="chart"></div>
+                </div>
+                <div id="stabilityChartContainer" style="height: 75vh;">
+                    <div id="stabilityChart"></div>
+                </div>
+            </div>
+            <div id="seatDiagramContainer" style="max-height: 75vh;">
+                <div id="seatDiagram"></div>
+            </div>
+        </div>
+
+    </div>
+    <script type="module">
+        import plotMainGraph from "/infrastructure/facentrate/plotters/plotMainGraph.js";
+        import plotStabilityGraph from "/infrastructure/facentrate/plotters/plotStabilityGraph.js";
+        import plotSeatDiagram from "/infrastructure/facentrate/plotters/plotSeatDiagram.js"
+        import * as d3 from "https://d3js.org/d3.v7.min.js";
+
         const dataList = document.getElementById("data");
         const ws = new WebSocket("ws://localhost:8001/ws");
 
+        const dataArray = [];
+        const wholeRoomStability = {seatsOccupiedDiffCountTotal: 0, seatsOccupiedDiffCount: []}
+
+        window.toggleLogs = (event) => {
+        const logsContainer = document.getElementById("logsContainer")
+        event.target.classList.toggle('active');
+            if (event.target.classList.contains('active')) {
+                event.target.textContent = 'Hide logs';
+                logsContainer.style.display = "flex"
+            } else {
+                event.target.textContent = 'Show logs';
+                logsContainer.style.display = "none"
+            }
+        }
+
         ws.onmessage = (event) => {
+
             const li = document.createElement("li")
+            const graph = document.getElementById("chart");
+            const stabilityGraph = document.getElementById("stabilityChart");
+            const seatDiagram = document.getElementById("seatDiagram");
+
             const dataObject = JSON.parse(event.data);
+            dataArray.push({acp_ts: dataObject.acp_ts, crowdcount: dataObject.payload_cooked.crowdcount});
+            wholeRoomStability.seatsOccupiedDiffCount.push({acp_ts: dataObject.acp_ts, value: dataObject.payload_cooked.seatsOccupiedDiffCount})
+
+            // plot data
+            const graphWidth = 1800;
+            const graphHeight = 600;
+            const svg = plotMainGraph(dataArray, [], [], [], 0, 0, graphHeight, graphWidth)
+            graph.replaceWith(svg);
+
+            // plot stability
+            const stabilitySvg = plotStabilityGraph(wholeRoomStability, graphHeight/2, graphWidth)
+            stabilityGraph.replaceWith(stabilitySvg)
+            
+            // plot seats
+            const seatSvg = plotSeatDiagram(dataObject.payload_cooked.seats_occupied, [])
+            seatDiagram.replaceWith(seatSvg)
+
             li.textContent = `${dataObject.payload_cooked.crowdcount} @ ${dataObject.acp_ts}`;
             dataList.appendChild(li);
         };
