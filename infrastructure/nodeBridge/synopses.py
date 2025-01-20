@@ -1,4 +1,5 @@
 import numpy as np
+from collections import defaultdict
 
 class PercentageConcentrationSynopsis():
     def __init__(self, seat):
@@ -29,6 +30,22 @@ class WholeRoomStabilitySynopsis():
         self.seatsOccupiedDiffCount = len(seatsOccupiedSet.symmetric_difference(self.prevSeatsOccupied))
         self.prevSeatsOccupied = seatsOccupiedSet
 
+class WholeRoomAvgOccupancySynopsis():
+    def __init__(self):
+        self.readingsCount = 0
+        self.counts = defaultdict(int)
+        self.avg = 0
+
+    def updateRoomAvgOccupancy(self, seatsOccupied):
+        self.readingsCount += 1
+        for seat in seatsOccupied:
+            self.counts[seat] += 1
+        self.avg = (sum(self.counts.values()) / self.readingsCount ) / len(self.counts)
+
+    def reset(self):
+        self.readingsCount = 0
+        self.counts = defaultdict(int)
+        self.avg = 0
 
 class LectureBoundarySynopsis():
     def __init__(self, EMA, alpha):

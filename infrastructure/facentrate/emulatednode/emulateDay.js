@@ -11,11 +11,13 @@ const emulateDay = (event, configObj, wsObj, proxiedDataArrObj) => {
     const startTime = form.startTime.value;
     const endTime = form.endTime.value;
     const seat = form.seat.value;
+
+    const startTimeTS = new Date(`${day} Jan 2024 ${startTime}:00 GMT`)
     console.log(day)
     wsObj.ws = new WebSocket(
         `ws://localhost:8002/ws?speed=${speed}&day=${day}&startTime=${startTime}&endTime=${endTime}&seat=${seat}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
-    wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj, seat);
+    wsObj.ws.onmessage = (event) => wsOnmessage(event, proxiedDataArrObj, seat, startTimeTS.valueOf());
     wsObj.ws.onopen = (event) => wsOnopen(proxiedDataArrObj, seat);
 }
 
@@ -38,11 +40,13 @@ const wsOnopen = (proxiedDataArrObj, seat) => {
     proxiedDataArrObj.percentageConcentration = null,
     proxiedDataArrObj.concentrationEdges = seat ? 0 : null,
     proxiedDataArrObj.wholeRoomStability = {seatsOccupiedDiffCountTotal: 0, seatsOccupiedDiffCount: []},
+    proxiedDataArrObj.wholeRoomAvgOccupancy = 0,
     proxiedDataArrObj.isVisible = false,
-    proxiedDataArrObj.wasVisible = false
+    proxiedDataArrObj.wasVisible = false,
+    proxiedDataArrObj.timeElapsed = 0
 }
 
-const wsOnmessage = (event, proxiedDataArrObj, seat) => {
+const wsOnmessage = (event, proxiedDataArrObj, seat, startTimeTS) => {
     const dataList = document.getElementById("data");
     const dataLi = document.createElement("li")
 
@@ -71,6 +75,9 @@ const wsOnmessage = (event, proxiedDataArrObj, seat) => {
             const diffCountValue = prevDiffCount.value > 0 ? prevDiffCount.value/2 + dataObject.payload_cooked.seatsOccupiedDiffCount : dataObject.payload_cooked.seatsOccupiedDiffCount
             proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCount.push({value: diffCountValue, acp_ts: +dataObject.acp_ts})
             proxiedDataArrObj.wholeRoomStability.seatsOccupiedDiffCountTotal = dataObject.payload_cooked.seatsOccupiedDiffCountTotal
+            proxiedDataArrObj.wholeRoomAvgOccupancy = dataObject.payload_cooked.roomAvgOccupancy
+
+            proxiedDataArrObj.timeElapsed = +dataObject.acp_ts - startTimeTS/1000
 
             dataLi.textContent = `${dataObject.payload_cooked.crowdcount} @ ${hours}:${minutes}:${seconds}`;
             dataList?.appendChild(dataLi);

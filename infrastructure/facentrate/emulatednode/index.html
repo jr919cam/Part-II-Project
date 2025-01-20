@@ -29,8 +29,10 @@
         percentageConcentration: null,
         concentrationEdges: null,
         wholeRoomStability:{seatsOccupiedDiffCountTotal: 0, seatsOccupiedDiffCount: []},
+        wholeRoomAvgOccupancy: 0,
         isVisible:false, 
-        wasVisible:false
+        wasVisible:false,
+        timeElapsed: 0
     }
 
     const handler = {
@@ -73,6 +75,8 @@
                         plotSeatMetricsDiagram(
                             target.percentageConcentration,
                             target.concentrationEdges,
+                            target.wholeRoomAvgOccupancy,
+                            target.timeElapsed
                         )
                     );
                 };

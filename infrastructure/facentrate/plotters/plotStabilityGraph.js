@@ -37,10 +37,17 @@ const plotStabilityGraph = (wholeRoomStability, height, width, startTime=null, e
 
     svg.append("g")
         .attr("transform", `translate(${marginLeft},0)`)
-        .call(d3.axisLeft(y).ticks(3))
+        .call(d3.axisLeft(y).ticks(3).tickFormat(d => -d))
         .call(g => g.select(".domain").remove())
         .call(g => g.selectAll(".tick line"))
-        .call(g => g.selectAll(".tick text").style("font-size", "0px"));
+        .call(g => g.selectAll(".tick text").style("font-size", "16px"))
+        .call(g => g.selectAll(".tick line")
+            .clone()
+                .attr("x2", width - marginRight - marginLeft)
+                .attr("stroke-opacity", 0.1))
+            .call(g => g.selectAll(".tick text")
+                .style("font-size", "20px")
+        );
 
     const seatsOccupiedDiffLine = d3.line()
         .x(d => x(d.acp_ts))
@@ -58,7 +65,7 @@ const plotStabilityGraph = (wholeRoomStability, height, width, startTime=null, e
         .attr("x", -height / 2)
         .attr("y", 5)
         .attr("text-anchor", "middle")
-        .attr("font-size", "25px")
+        .attr("font-size", "20px")
         .attr("transform", "rotate(-90)")
         .text("Room Stability");
 

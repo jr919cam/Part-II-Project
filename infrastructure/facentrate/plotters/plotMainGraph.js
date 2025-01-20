@@ -44,11 +44,11 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
         .call(d3.axisLeft(y).ticks(d3.min([10, d3.max(data, d=>d.crowdcount)])).tickFormat(d3.format('d')))
         .call(g => g.select(".domain").remove())
         .call(g => g.selectAll(".tick line")
-          .clone()
-            .attr("x2", width - marginRight - marginLeft)
-            .attr("stroke-opacity", d => d === 0 ? 1 : 0.1))
-        .call(g => g.selectAll(".tick text")
-            .style("font-size", "20px")
+            .clone()
+                .attr("x2", width - marginRight - marginLeft)
+                .attr("stroke-opacity", d => d === 0 ? 1 : 0.1))
+            .call(g => g.selectAll(".tick text")
+                .style("font-size", "20px")
         );
     
     const crowdCountLine = d3.line()
@@ -135,6 +135,16 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
         .attr("width", (b) => x(b.end_acp_ts) - x(b.start_acp_ts))
         .attr("height", 150)
         .attr("fill-opacity", 0.5);
+    
+    svg.append("rect")
+        .attr("width", width/15)
+        .attr("height", height/10)
+        .attr("transform", `translate(${width - width/17.5},${height/40})`)
+        .attr("fill", "#eaeaea")
+    svg.append("circle").attr("cx", width - width/20).attr("cy",height/20).attr("r", 6).style("fill", "green")
+    svg.append("circle").attr("cx", width - width/20).attr("cy",2*height/20).attr("r", 6).style("fill", "red")
+    svg.append("text").attr("x", width - width/20 + 15).attr("y", height/20).text("lecture up").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", width - width/20 + 15).attr("y", 2*height/20).text("lecture down").style("font-size", "15px").attr("alignment-baseline","middle")
 
     return svg.node();
 }

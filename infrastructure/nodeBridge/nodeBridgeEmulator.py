@@ -6,7 +6,7 @@ from sanic import Websocket
 import json
 
 from RollingSeatVarianceEngine import RollingSeatVarianceEngine
-from synopses import LectureBoundarySynopsis, PercentageConcentrationSynopsis, WholeRoomStabilitySynopsis
+from synopses import LectureBoundarySynopsis, PercentageConcentrationSynopsis, WholeRoomStabilitySynopsis, WholeRoomAvgOccupancySynopsis
 
 app = Sanic("nodeBridgeEmulator")
 
@@ -41,6 +41,7 @@ async def websocket_feed(request, ws: Websocket):
     lectureBoundarySynopsis = LectureBoundarySynopsis(0, alpha)
     percentageConcentrationSynopsis = PercentageConcentrationSynopsis(seat)
     wholeRoomStabilitySynopsis = WholeRoomStabilitySynopsis()
+    wholeRoomAvgOccupancySynopsis = WholeRoomAvgOccupancySynopsis()
 
     # Optional variance engine for seat, does not sync correctly at high speeds
     # varianceEngine = RollingSeatVarianceEngine(seat, speed=speed)
@@ -56,16 +57,18 @@ async def websocket_feed(request, ws: Websocket):
                     percentageConcentrationSynopsis.updateAverage(seats_occupied)
                 
                 wholeRoomStabilitySynopsis.updateRoomStability(seats_occupied)
+                wholeRoomAvgOccupancySynopsis.updateRoomAvgOccupancy(seats_occupied)
 
                 formattedReading = {
                     "acp_ts":acp_ts,
-                    "acp_id":acp_id, 
+                    "acp_id":acp_id,
                     "payload_cooked": {
                         "crowdcount": crowdcount,
                         "seats_occupied": seats_occupied, 
                         "percent_concentration": percentageConcentrationSynopsis.avg, 
                         "seatsOccupiedDiffCountTotal":wholeRoomStabilitySynopsis.seatsOccupiedDiffCountTotal,
-                        "seatsOccupiedDiffCount":wholeRoomStabilitySynopsis.seatsOccupiedDiffCount
+                        "seatsOccupiedDiffCount":wholeRoomStabilitySynopsis.seatsOccupiedDiffCount,
+                        "roomAvgOccupancy": wholeRoomAvgOccupancySynopsis.avg
                     },
                     "type":"reading", 
                     "readingType":"node"
@@ -76,8 +79,10 @@ async def websocket_feed(request, ws: Websocket):
                 await ws.send(json.dumps(formattedReading))
                 lectureBoundarySynopsis.updateEMA(JSONDataList, t)
                 if lectureBoundarySynopsis.isEMALectureUpEvent(JSONDataList, t):
+                    wholeRoomAvgOccupancySynopsis.reset()
                     await ws.send(json.dumps({"acp_ts":acp_ts, "type":"event", "eventType": "lectureUp"}))
                 if lectureBoundarySynopsis.isEMALectureDownEvent(JSONDataList, t):
+                    wholeRoomAvgOccupancySynopsis.reset()
                     await ws.send(json.dumps({"acp_ts":acp_ts, "type":"event", "eventType": "lectureDown"}))
                 if t == len(JSONDataList) - 1:
                     break
@@ -89,9 +94,7 @@ async def websocket_feed(request, ws: Websocket):
         except Exception as e:
             print(f"WebSocket connection closed: {e}")
     await asyncio.gather(
-
         # varianceEngine.startVarianceEngine(ws, startTimestamp),
-        
         sendLoop()
     )
 
