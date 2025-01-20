@@ -2,4 +2,4 @@
 Repository for my part II project
 
 #### Stream-processing Cerberus and environmental data for multi-timescale analysis
-supervised by Dr. Ian Lewis
+supervised by Dr. Ian Lewis & Justas Brazauskas
