@@ -60,7 +60,6 @@ async def websocket_feed(request, ws: Websocket):
                     "type":"reading", 
                     "readingType":"node"
                 }
-                print(f"sending {enhancedReading}")
                 await ws.send(json.dumps(enhancedReading))
             await asyncio.sleep(0.1)
     except Exception as e:

@@ -68,6 +68,16 @@ const plotSeatDiagram = (seats, seatsHistory) => {
         .attr("r", 4)
         .attr("fill", "red");
 
+    svg.append("rect")
+        .attr("width", width/3)
+        .attr("height", height/10)
+        .attr("transform", `translate(${width - 5*width/17.5},${height/40})`)
+        .attr("fill", "#eaeaea")
+    svg.append("circle").attr("cx", width - 5*width/20).attr("cy",height/20).attr("r", 6).style("fill", "red")
+    svg.append("circle").attr("cx", width - 5*width/20).attr("cy",2*height/20).attr("r", 6).style("fill", "orange")
+    svg.append("text").attr("x", width - 5*width/20 + 15).attr("y", height/20).text("seat occupied").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", width - 5*width/20 + 15).attr("y", 2*height/20).text("seat was occupied").style("font-size", "15px").attr("alignment-baseline","middle")
+
     return svg.node()
 }
 

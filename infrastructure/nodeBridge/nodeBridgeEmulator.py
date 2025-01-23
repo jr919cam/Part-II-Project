@@ -1,27 +1,22 @@
 import asyncio
 from datetime import datetime
 import time
+import pandas as pd
 from sanic import Sanic
 from sanic import Websocket
 import json
 
 from RollingSeatVarianceEngine import RollingSeatVarianceEngine
 from synopses import LectureBoundarySynopsis, PercentageConcentrationSynopsis, WholeRoomStabilitySynopsis, WholeRoomAvgOccupancySynopsis
+from co2BridgeEmulator import Co2BridgeEmulator
 
 app = Sanic("nodeBridgeEmulator")
 
 data = []
 
-def getJSONDataList(day: int, startTimeStamp: int, endTimeStamp: int)->list[dict]:
-    with open(f'node_22-28Jan/cerberus-node-lt1_2024-01-{day}.txt', 'r') as file:
-        JSONDataList = [json.loads(dataLine[:-1]) for dataLine in file]
-        startIndex = None
-        for i, reading in enumerate(JSONDataList):
-            if startIndex == None and float(reading["acp_ts"]) >= startTimeStamp:
-                startIndex = i
-            if float(reading["acp_ts"]) >= endTimeStamp:
-                return JSONDataList[startIndex:i]
-        return []
+def getNodeDf(day: int, startTimeStamp: int, endTimeStamp: int)->pd.DataFrame:
+    nodeDf = pd.read_json(f'node_22-28Jan/cerberus-node-lt1_2024-01-{day}.txt', lines=True)
+    return nodeDf[(nodeDf['acp_ts'] >= startTimeStamp) & (nodeDf['acp_ts'] <= endTimeStamp)].reset_index()
 
 @app.websocket("/ws")
 async def websocket_feed(request, ws: Websocket):
@@ -43,28 +38,30 @@ async def websocket_feed(request, ws: Websocket):
     wholeRoomStabilitySynopsis = WholeRoomStabilitySynopsis()
     wholeRoomAvgOccupancySynopsis = WholeRoomAvgOccupancySynopsis()
 
+    co2BridgeEmulator = Co2BridgeEmulator('058ae3', day, startTimestamp, endTimestamp, speed)
+
     # Optional variance engine for seat, does not sync correctly at high speeds
     # varianceEngine = RollingSeatVarianceEngine(seat, speed=speed)
 
-    JSONDataList = getJSONDataList(day, startTimestamp, endTimestamp)
-    async def sendLoop():
+    nodeDf = getNodeDf(day, startTimestamp, endTimestamp)
+    async def nodeStartSendLoop():
         try:
-            for t, reading in enumerate(JSONDataList):
-                startTime = time.time()
-                acp_ts, acp_id, crowdcount, seats_occupied = reading.values()
+            await asyncio.sleep(max((float(nodeDf.loc[0]['acp_ts']) - startTimestamp)/(speed), 0.1))
+            for t, reading in nodeDf.iterrows():
+                workStartTime = time.time()
 
                 if percentageConcentrationSynopsis.seat != None:
-                    percentageConcentrationSynopsis.updateAverage(seats_occupied)
+                    percentageConcentrationSynopsis.updateAverage(reading["seats_occupied"])
                 
-                wholeRoomStabilitySynopsis.updateRoomStability(seats_occupied)
-                wholeRoomAvgOccupancySynopsis.updateRoomAvgOccupancy(seats_occupied)
+                wholeRoomStabilitySynopsis.updateRoomStability(reading["seats_occupied"], t)
+                wholeRoomAvgOccupancySynopsis.updateRoomAvgOccupancy(reading["seats_occupied"])
 
                 formattedReading = {
-                    "acp_ts":acp_ts,
-                    "acp_id":acp_id,
+                    "acp_ts":reading["acp_ts"],
+                    "acp_id":reading["acp_id"],
                     "payload_cooked": {
-                        "crowdcount": crowdcount,
-                        "seats_occupied": seats_occupied, 
+                        "crowdcount": reading["crowdcount"],
+                        "seats_occupied": reading["seats_occupied"], 
                         "percent_concentration": percentageConcentrationSynopsis.avg, 
                         "seatsOccupiedDiffCountTotal":wholeRoomStabilitySynopsis.seatsOccupiedDiffCountTotal,
                         "seatsOccupiedDiffCount":wholeRoomStabilitySynopsis.seatsOccupiedDiffCount,
@@ -77,25 +74,28 @@ async def websocket_feed(request, ws: Websocket):
                 # varianceEngine.incrementChunkCounter(seats_occupied)
 
                 await ws.send(json.dumps(formattedReading))
-                lectureBoundarySynopsis.updateEMA(JSONDataList, t)
-                if lectureBoundarySynopsis.isEMALectureUpEvent(JSONDataList, t):
+                lectureBoundarySynopsis.updateEMA(nodeDf, t)
+                if lectureBoundarySynopsis.isEMALectureUpEvent(reading, t):
                     wholeRoomAvgOccupancySynopsis.reset()
-                    await ws.send(json.dumps({"acp_ts":acp_ts, "type":"event", "eventType": "lectureUp"}))
-                if lectureBoundarySynopsis.isEMALectureDownEvent(JSONDataList, t):
+                    await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureUp"}))
+                if lectureBoundarySynopsis.isEMALectureDownEvent(reading, t):
                     wholeRoomAvgOccupancySynopsis.reset()
-                    await ws.send(json.dumps({"acp_ts":acp_ts, "type":"event", "eventType": "lectureDown"}))
-                if t == len(JSONDataList) - 1:
+                    await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureDown"}))
+                if t == len(nodeDf) - 1:
                     break
 
-                time_delta = float(JSONDataList[t+1]['acp_ts']) - float(formattedReading['acp_ts'])
-                endTime = time.time()
-                sleepTime = max(time_delta - (endTime - startTime),0)
-                await asyncio.sleep(sleepTime/speed)
+                time_delta = float(nodeDf.loc[t+1]['acp_ts']) - float(reading['acp_ts'])
+                
+                workEndTime = time.time()
+                sleepTime = max((time_delta/speed) - (workEndTime - workStartTime),0)
+                await asyncio.sleep(sleepTime)
         except Exception as e:
             print(f"WebSocket connection closed: {e}")
     await asyncio.gather(
         # varianceEngine.startVarianceEngine(ws, startTimestamp),
-        sendLoop()
+        
+        co2BridgeEmulator.startSendLoop(ws),
+        nodeStartSendLoop()
     )
 
 if __name__ == "__main__":

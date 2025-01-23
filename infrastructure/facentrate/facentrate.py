@@ -8,7 +8,6 @@ from sanic import text
 app = Sanic("facentrate")
 
 app.static("/infrastructure", "./infrastructure", name="infrastructure_static")
-app.static("/node_modules", "./node_modules", name="node_modules_static")
 
 @app.get("/")
 async def root_response(request):

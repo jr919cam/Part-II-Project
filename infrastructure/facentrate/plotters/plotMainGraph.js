@@ -1,4 +1,4 @@
-const plotMainGraph = (data, events, barcodes, variance, height, width, startTime=null, endTime=null, day=null) => {
+const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, startTime=null, endTime=null, day=null) => {
     const startTimeString = `2024-01-${day}T${startTime}:00`;
     const start = new Date(startTimeString);
     const startTimeStamp = Math.floor(start.getTime() / 1000);
@@ -8,7 +8,7 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
     const endTimeStamp = Math.floor(end.getTime() / 1000);
 
     const marginTop = 20;
-    const marginRight = 30;
+    const marginRight = 50;
     const marginBottom = 45;
     const marginLeft = 40;
 
@@ -20,6 +20,10 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
   
     const y = d3.scaleLinear()
         .domain([0, d3.max(data, d=>d.crowdcount)]).nice()
+        .range([height - marginBottom, marginTop]);
+
+    const yCalibratedCo2 = d3.scaleLinear()
+        .domain(d3.extent(sensor, s=>s.calibrated_co2)).nice()
         .range([height - marginBottom, marginTop]);
 
     const yVariance = d3.scaleLinear()
@@ -40,16 +44,23 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
         .call(g => g.selectAll(".tick text").style("font-size", "20px"));
     
     svg.append("g")
-        .attr("transform", `translate(${marginLeft},0)`)
-        .call(d3.axisLeft(y).ticks(d3.min([10, d3.max(data, d=>d.crowdcount)])).tickFormat(d3.format('d')))
-        .call(g => g.select(".domain").remove())
-        .call(g => g.selectAll(".tick line")
-            .clone()
-                .attr("x2", width - marginRight - marginLeft)
-                .attr("stroke-opacity", d => d === 0 ? 1 : 0.1))
-            .call(g => g.selectAll(".tick text")
-                .style("font-size", "20px")
-        );
+    .attr("transform", `translate(${marginLeft},0)`)
+    .call(d3.axisLeft(y).ticks(d3.min([10, d3.max(data, d=>d.crowdcount)])).tickFormat(d3.format('d')))
+    .call(g => g.select(".domain").remove())
+    .call(g => g.selectAll(".tick line")
+        .clone()
+            .attr("x2", width - marginRight - marginLeft)
+            .attr("stroke-opacity", d => d === 0 ? 1 : 0.1))
+        .call(g => g.selectAll(".tick text")
+            .style("font-size", "20px")
+    );
+
+    svg.append("g")
+    .attr("transform", `translate(${width-marginRight},0)`)
+    .call(d3.axisRight(yCalibratedCo2).ticks(5).tickFormat(d3.format('d')))
+    .call(g => g.select(".domain").remove())
+    .call(g => g.selectAll(".tick text")
+            .style("font-size", "20px"))
     
     const crowdCountLine = d3.line()
     .x(d => x(d.acp_ts))
@@ -62,6 +73,28 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
         .attr("stroke-width", 5)
         .attr("opacity", 0.5)
         .attr("d", crowdCountLine);
+
+    const calibratedCo2Line = d3.line()
+        .x(s => x(s.acp_ts))
+        .y(s => yCalibratedCo2(s.calibrated_co2));
+        
+    svg.append("path")
+        .datum(sensor)
+        .attr("fill", "none")
+        .attr("stroke", "red")
+        .attr("stroke-width", 5)
+        .attr("opacity", 0.3)
+        .attr("d", calibratedCo2Line);
+
+    svg.append("g")
+        .attr("stroke", "#000")
+        .attr("stroke-opacity", 0.2)
+        .selectAll()
+        .data(sensor)
+        .join("circle")
+        .attr("cx", s => x(s.acp_ts))
+        .attr("cy", s => yCalibratedCo2(s.calibrated_co2))
+        .attr("r", 2.5);
 
     const varianceLine = d3.line()
         .x(d => x(d.acp_ts))
@@ -99,6 +132,15 @@ const plotMainGraph = (data, events, barcodes, variance, height, width, startTim
     .attr("font-size", "25px")
     .attr("transform", "rotate(-90)")
     .text("Crowd Count");
+
+    svg.append("text")
+    .attr("x", width - 10)
+    .attr("y", height/2)
+    .attr("text-anchor", "middle")
+    .attr("transform", `rotate(90, ${width - 10}, ${height/2})`)
+    .attr("font-size", "25px")
+    .text("Calibrated CO2 level");
+
 
     svg.append("g")
     .selectAll("line")

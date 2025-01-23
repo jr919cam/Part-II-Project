@@ -53,12 +53,24 @@ const plotStabilityGraph = (wholeRoomStability, height, width, startTime=null, e
         .x(d => x(d.acp_ts))
         .y(d => y(d.value));
 
+    const seatsOccupiedDiffEMALine = d3.line()
+        .x(d => x(d.acp_ts))
+        .y(d => y(d.ema));
+
     svg.append("path")
         .datum(wholeRoomStability.seatsOccupiedDiffCount)
         .attr("fill", "none")
-        .attr("stroke", "green")
-        .attr("stroke-width", 2)
+        .attr("stroke", "black")
+        .attr("stroke-width", 4)
         .attr("opacity", 0.8)
+        .attr("d", seatsOccupiedDiffEMALine);
+
+    svg.append("path")
+        .datum(wholeRoomStability.seatsOccupiedDiffCount)
+        .attr("fill", "none")
+        .attr("stroke", "black")
+        .attr("stroke-width", 2)
+        .attr("opacity", 0.5)
         .attr("d", seatsOccupiedDiffLine);
     
     svg.append("text")
