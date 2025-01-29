@@ -2,7 +2,7 @@ function plotSeatMetricsDiagram(piePercent, concentrationEdges, wholeRoomAvgOccu
     const width = 600;
     const height = 300;
     
-    const concentrationEdgesPercent = Math.pow(Math.E, -150 * concentrationEdges/timeElapsed)
+    const concentrationEdgesPercent = concentrationEdges ? Math.pow(Math.E, -150 * concentrationEdges/timeElapsed) : 0
 
     const svg = d3.create("svg")
         .attr("width", width)
@@ -80,7 +80,7 @@ function plotSeatMetricsDiagram(piePercent, concentrationEdges, wholeRoomAvgOccu
         .attr("y", yScale(wholeRoomAvgOccupancy ?? 0))
         .attr("height", roomAvgOccupancyBarHeight);
 
-    const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat(d => +d*100 + "%");
+    const yAxis = d3.axisLeft(yScale).ticks(10).tickFormat(d => +d*100 + "%");
     svg.append("g")
         .attr("class", "axis")
         .attr("transform", `translate(${width/10},${height/5})`)

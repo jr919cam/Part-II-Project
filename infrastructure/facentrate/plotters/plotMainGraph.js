@@ -1,9 +1,9 @@
 const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, startTime=null, endTime=null, day=null) => {
-    const startTimeString = `2024-01-${day}T${startTime}:00`;
+    const startTimeString = `${day}T${startTime}:00`;
     const start = new Date(startTimeString);
     const startTimeStamp = Math.floor(start.getTime() / 1000);
 
-    const endTimeString = `2024-01-${day}T${endTime}:00`;
+    const endTimeString = `${day}T${endTime}:00`;
     const end = new Date(endTimeString);
     const endTimeStamp = Math.floor(end.getTime() / 1000);
 
@@ -81,7 +81,7 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     svg.append("path")
         .datum(sensor)
         .attr("fill", "none")
-        .attr("stroke", "red")
+        .attr("stroke", "blue")
         .attr("stroke-width", 5)
         .attr("opacity", 0.3)
         .attr("d", calibratedCo2Line);
@@ -137,8 +137,8 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     .attr("x", width - 10)
     .attr("y", height/2)
     .attr("text-anchor", "middle")
-    .attr("transform", `rotate(90, ${width - 10}, ${height/2})`)
-    .attr("font-size", "25px")
+    .attr("transform", `rotate(90, ${width - 5}, ${height/2})`)
+    .attr("font-size", "20px")
     .text("Calibrated CO2 level");
 
 
@@ -180,13 +180,17 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     
     svg.append("rect")
         .attr("width", width/15)
-        .attr("height", height/10)
+        .attr("height", height/5)
         .attr("transform", `translate(${width - width/17.5},${height/40})`)
         .attr("fill", "#eaeaea")
     svg.append("circle").attr("cx", width - width/20).attr("cy",height/20).attr("r", 6).style("fill", "green")
     svg.append("circle").attr("cx", width - width/20).attr("cy",2*height/20).attr("r", 6).style("fill", "red")
+    svg.append("circle").attr("cx", width - width/20).attr("cy",3*height/20).attr("r", 6).style("fill", "blue")
+    svg.append("circle").attr("cx", width - width/20).attr("cy",4*height/20).attr("r", 6).style("fill", "orange")
     svg.append("text").attr("x", width - width/20 + 15).attr("y", height/20).text("lecture up").style("font-size", "15px").attr("alignment-baseline","middle")
     svg.append("text").attr("x", width - width/20 + 15).attr("y", 2*height/20).text("lecture down").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", width - width/20 + 15).attr("y", 3*height/20).text("co2").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", width - width/20 + 15).attr("y", 4*height/20).text("crowd count").style("font-size", "15px").attr("alignment-baseline","middle")
 
     return svg.node();
 }

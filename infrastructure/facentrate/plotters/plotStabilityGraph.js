@@ -1,9 +1,9 @@
 const plotStabilityGraph = (wholeRoomStability, height, width, startTime=null, endTime=null, day=null) => {
-    const startTimeString = `2024-01-${day}T${startTime}:00`;
+    const startTimeString = `${day}T${startTime}:00`;
     const start = new Date(startTimeString);
     const startTimeStamp = Math.floor(start.getTime() / 1000);
 
-    const endTimeString = `2024-01-${day}T${endTime}:00`;
+    const endTimeString = `${day}T${endTime}:00`;
     const end = new Date(endTimeString);
     const endTimeStamp = Math.floor(end.getTime() / 1000);
 
@@ -64,6 +64,8 @@ const plotStabilityGraph = (wholeRoomStability, height, width, startTime=null, e
         .attr("stroke-width", 4)
         .attr("opacity", 0.8)
         .attr("d", seatsOccupiedDiffEMALine);
+    
+    // console.log("integral:", d3.sum(wholeRoomStability.seatsOccupiedDiffCount, d=>d.ema))
 
     svg.append("path")
         .datum(wholeRoomStability.seatsOccupiedDiffCount)

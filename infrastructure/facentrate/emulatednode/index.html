@@ -7,7 +7,7 @@
 </head>
 
 <script type="module">
-    import emulateDay from "/infrastructure/facentrate/emulatednode/emulateDay.js"
+    import emulateDay, {graphWidth, graphHeight} from "/infrastructure/facentrate/emulatednode/emulateDay.js"
     import * as d3 from "https://d3js.org/d3.v7.min.js";
     import plotMainGraph from "/infrastructure/facentrate/plotters/plotMainGraph.js";
     import plotStabilityGraph from "/infrastructure/facentrate/plotters/plotStabilityGraph.js";
@@ -73,13 +73,43 @@
             <label for="dayDropdown" style="padding-right: 1vw;">Day to emulate: </label>
             <select id="dayDropdown" name="day">
                 <option value="" selected disabled>Select an option</option>
-                <option value="22">22/01/24</option>
-                <option value="23">23/01/24</option>
-                <option value="24">24/01/24</option>
-                <option value="25">25/01/24</option>
-                <option value="26">26/01/24</option>
-                <option value="27">27/01/24</option>
-                <option value="28">28/01/24</option>
+                <option value = "2024-01-22">22/01/24</option>
+                <option value = "2024-01-23">23/01/24</option>
+                <option value = "2024-01-24">24/01/24</option>
+                <option value = "2024-01-25">25/01/24</option>
+                <option value = "2024-01-26">26/01/24</option>
+                <option value = "2024-01-27">27/01/24</option>
+                <option value = "2024-01-28">28/01/24</option>
+                
+                <option value = "2025-01-01">1/01/25</option>
+                <option value = "2025-01-02">2/01/25</option>
+                <option value = "2025-01-03">3/01/25</option>
+                <option value = "2025-01-04">4/01/25</option>
+                <option value = "2025-01-05">5/01/25</option>
+                <option value = "2025-01-06">6/01/25</option>
+                <option value = "2025-01-07">7/01/25</option>
+                <option value = "2025-01-08">8/01/25</option>
+                <option value = "2025-01-09">9/01/25</option>
+
+                <option value = "2025-01-10">10/01/25</option>
+                <option value = "2025-01-11">11/01/25</option>
+                <option value = "2025-01-12">12/01/25</option>
+                <option value = "2025-01-13">13/01/25</option>
+                <option value = "2025-01-14">14/01/25</option>
+                <option value = "2025-01-15">15/01/25</option>
+                <option value = "2025-01-16">16/01/25</option>
+                <option value = "2025-01-17">17/01/25</option>
+                <option value = "2025-01-18">18/01/25</option>
+                <option value = "2025-01-19">19/01/25</option>
+
+                <option value = "2025-01-20">20/01/25</option>
+                <option value = "2025-01-21">21/01/25</option>
+                <option value = "2025-01-22">22/01/25</option>
+                <option value = "2025-01-23">23/01/25</option>
+                <option value = "2025-01-24">24/01/25</option>
+                <option value = "2025-01-25">25/01/25</option>
+                <option value = "2025-01-26">26/01/25</option>
+                <option value = "2025-01-27">27/01/25</option>
             </select>
 
             <label for="startTime" style="padding: 0 1vw 0 4vw;">Start time:</label>
@@ -90,6 +120,9 @@
 
             <label for="seat" style="padding: 0 1vw 0 4vw;">Seat:</label>
             <input type="text" style="max-width: 5vw;" id="seat" name="seat">
+
+            <label for="sensor" style="padding: 0 1vw 0 4vw;">Sensor:</label>
+            <input type="text" style="max-width: 5vw;" id="sensor" name="sensor" value="058ae3">
 
             <label for="speed" style="padding: 0 1vw 0 4vw;">Speed:</label>
             <input type="number" style="max-width: 5vw;" id="speed" name="speed" value="100">

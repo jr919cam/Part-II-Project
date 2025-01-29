@@ -3,14 +3,15 @@ import plotMainGraph from "/infrastructure/facentrate/plotters/plotMainGraph.js"
 import plotSeatMetricsDiagram from "/infrastructure/facentrate/plotters/plotSeatMetricsDiagram.js";
 import plotStabilityGraph from "/infrastructure/facentrate/plotters/plotStabilityGraph.js";
 
+export const graphWidth = 1800;
+export const graphHeight = 600;
+
 const plotGraphs = (endTime, startTime, day, dataArrObj) => {
-    const graphWidth = 1800;
-    const graphHeight = 600;
 
     const oldChart = document.getElementById("chart")
     const oldStabilityChart = document.getElementById("stabilityChart")
     const oldSeatMetricsDiagram = document.getElementById("seatMetricsDiagram")
-
+    
     oldChart.replaceWith(
         plotMainGraph(
             dataArrObj.dataArr, 
@@ -78,11 +79,11 @@ const emulateDay = (event) => {
     const startTime = form.startTime.value;
     const endTime = form.endTime.value;
     const seat = form.seat.value;
+    const sensor = form.sensor.value;
 
-    const startTimeTS = new Date(`${day} Jan 2024 ${startTime}:00 GMT`)
-    console.log(day)
+    const startTimeTS = new Date(`${day}T${startTime}:00 GMT`)
     wsObj.ws = new WebSocket(
-        `ws://localhost:8002/ws?speed=${speed}&day=${day}&startTime=${startTime}&endTime=${endTime}&seat=${seat}&alpha=${configObj.alpha}`);
+        `ws://localhost:8002/ws?speed=${speed}&day=${day}&startTime=${startTime}&endTime=${endTime}&seat=${seat}&sensor=${sensor}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
     wsObj.ws.onmessage = (event) => wsOnmessage(event, dataArrObj, seat, startTimeTS.valueOf(), form);
     wsObj.ws.onopen = (event) => wsOnopen(dataArrObj, seat);

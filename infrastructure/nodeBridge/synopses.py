@@ -19,6 +19,30 @@ class PercentageConcentrationSynopsis():
         self.readingsCount += 1
         self.avg = self.seatCount/self.readingsCount
 
+class PeriodSynopsis():
+    def __init__(self, period:int, startTS:float):
+        '''
+            #### Parameters:
+
+            period: time in seconds for each measurement period
+            startTS: starting timestamp
+        '''
+        self.period = period
+        self.periodMeans = []
+        self.periodSDs = []
+        self.currents = {"count":0, "mean":0, "m2":0, "tsLimit":startTS + period}
+
+    def updatePeriodMetrics(self, crowdcount:int):
+        self.currents["count"] += 1
+        delta = crowdcount - self.currents["mean"]
+        self.currents["mean"] += delta/self.currents["count"]
+        self.currents["m2"] += delta*(crowdcount - self.currents["mean"])
+    
+    def resetIfPeriodEnd(self, ts: float):
+        if ts > self.currents["tsLimit"]:
+            self.periodMeans.append("{:.1f}".format(self.currents['mean']))
+            self.periodSDs.append("{:.1f}".format((self.currents['m2']/(self.currents["count"] - 1))**(0.5)))
+            self.currents = {"count":0, "mean":0, "m2":0, "tsLimit": self.currents["tsLimit"] + self.period}
 
 class WholeRoomStabilitySynopsis():
     def __init__(self):
@@ -45,6 +69,9 @@ class WholeRoomAvgOccupancySynopsis():
             self.counts[seat] += 1
         if self.readingsCount > 0 and len(self.counts) > 0:
             self.avg = (sum(self.counts.values()) / self.readingsCount ) / len(self.counts)
+    
+    def getStdDev(self):
+        return np.sqrt(sum([(self.avg - count/self.readingsCount) ** 2 for count in self.counts.values()]) / len(self.counts))
 
     def reset(self):
         self.readingsCount = 0
