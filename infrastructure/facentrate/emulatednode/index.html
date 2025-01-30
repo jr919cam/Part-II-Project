@@ -64,12 +64,12 @@
     }
 </script>
 
-<body style='font-family: Arial, sans-serif;'>
-    <div style="padding: 1vw; background-color: #ede9cc;">
+<body style='font-family: Arial, sans-serif; background-color: white;'>
+    <div style="padding: 1vw; background-color: #c3c3c3; border-radius: 1vw 1vw 0 0;">
         <h1>Emulated historical Node data</h1>
     </div>
     <form>
-        <div style="display: flex; flex-direction: row; margin: 1vw; margin-left: 0; max-height: 3vh;">
+        <div style="display: flex; flex-direction: row; padding: 1vw; margin-bottom: 1vw; border-radius: 0 0 1vw 1vw; max-height: 3vh; background-color: #e9e9e9";>
             <label for="dayDropdown" style="padding-right: 1vw;">Day to emulate: </label>
             <select id="dayDropdown" name="day">
                 <option value="" selected disabled>Select an option</option>
@@ -127,43 +127,51 @@
             <label for="speed" style="padding: 0 1vw 0 4vw;">Speed:</label>
             <input type="number" style="max-width: 5vw;" id="speed" name="speed" value="100">
         </div>
-        <button style="margin-bottom: 1vw; width:5vw; background-color: #d6edcc;" type="submit" onclick="handleemulateFormSubmission(event)">Go!</button>
+        <div style="padding: 1vw; background-color: #e9e9e9; border-radius: 1vw 1vw 0 0;">
+            <button style="width:5vw; background-color: #c7c7c7;" type="submit" onclick="handleemulateFormSubmission(event)">Go!</button>
+        </div>
     </form>
-    <div id='options'>
-        <button style="margin-bottom: 0.5vw;" id="downloadBtn" onclick="downloadGraphSVG(event)">Download Graph</button>
-        <div display="flex">
-            <button id="toggleButton" onClick="toggleLogs(event)" style="margin-bottom: 1vw">Show logs</button>
-        </div>
-    </div>
-    
-    <div style="display: flex; flex-direction: row;">
-        <div id="logsContainer" style="display: none;">
-            <div id="datacontainer" style="height: 80vh; overflow: scroll; padding: 1vw; background-color: #ede9cc; max-width: 10vw;">
-                <h3>Node readings</h3>
-                <div id="data"></div>
-            </div>
-            <div id="lectureEventsContianer" style="height: 80vh; overflow: scroll; padding: 1vw; margin-left: 1vw; background-color: #EDCDCC; max-width: 10vw;">
-                <h3>Lecture events</h3>
-                <div id="lectureEvents"></div>
+    <div style="border-radius: 0 0 1vw 1vw; background-color: #e9e9e9; padding: 0 1vw 1vw 1vw;">
+        <div id='options'>
+            <button style="margin-bottom: 0.5vw;" id="downloadBtn" onclick="downloadGraphSVG(event)">Download Graph</button>
+            <div display="flex">
+                <button id="toggleButton" onClick="toggleLogs(event)" style="margin-bottom: 1vw">Show logs</button>
             </div>
         </div>
-        <div style="display:flex; max-width: 80vw; margin-left: 1vw;"></div>
-            <div style="display:flex; flex-direction: column; max-width: 80vw; margin-left: 1vw;">
-                <div id="chartContainer">
-                    <div id="chart"></div>
+        
+        <div style="display: flex; flex-direction: row;">
+            <div id="logsContainer" style="display: none;">
+                <div id="datacontainer" style="height: 80vh; overflow: scroll; padding: 1vw; background-color: #ede9cc; max-width: 10vw;">
+                    <h3>Node readings</h3>
+                    <div id="data"></div>
                 </div>
-                <div id="stabilityChartContainer" style="height: 75vh;">
-                    <div id="stabilityChart"></div>
-                </div>
-            </div>
-            <div style="display: flex; flex-direction: column;">
-                <div id="seatDiagramContainer">
-                    <div id="seatDiagram"></div>
-                </div>
-                <div id="seatMetricsDiagramContainer" style="max-height: 10vh;">
-                    <div id="seatMetricsDiagram"></div>
+                <div id="lectureEventsContianer" style="height: 80vh; overflow: scroll; padding: 1vw; margin-left: 1vw; background-color: #EDCDCC; max-width: 10vw;">
+                    <h3>Lecture events</h3>
+                    <div id="lectureEvents"></div>
                 </div>
             </div>
+            <div style="display:flex;"></div>
+                <div style="display:flex; flex-direction: column; max-width: 75vw;">
+                    <div id="chartContainer">
+                        <div id="chart"></div>
+                    </div>
+                    <div id="stabilityChartContainer">
+                        <div id="stabilityChart"></div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; max-width: 25vw;">
+                    <div id="seatDiagramContainer">
+                        <div id="seatDiagram"></div>
+                    </div>
+                    <div id="seatMetricsDiagramContainer" style="max-width: 100vw;">
+                        <div id="seatMetricsDiagram"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="quarterlyContainer">
+
         </div>
     </div>
 

@@ -199,6 +199,18 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
             lectureEventLi.textContent = `Lecture down @ ${hours}:${minutes}:${seconds}`;
             lectureEvents?.appendChild(lectureEventLi);
         }
+        if(dataObject.eventType === "quarterlyCrowdCount") {
+            const quarterlyContainer = document.getElementById("quarterlyContainer")
+            const quarterlyCrowdEventLi = document.createElement("li")
+            quarterlyCrowdEventLi.textContent = `mean ${dataObject.quarterMean}, sd ${dataObject.quarterSD}, facentration avg ${(dataObject.quarterFacentrationAvg * 100).toFixed(1)}%, facentration sd ${(dataObject.quarterFacentrationSD * 100).toFixed(1)}%`;
+            quarterlyContainer?.appendChild(quarterlyCrowdEventLi);
+        }
+        if(dataObject.eventType === "quarterlyCo2") {
+            const quarterlyContainer = document.getElementById("quarterlyContainer")
+            const quarterlyCo2EventLi = document.createElement("li")
+            quarterlyCo2EventLi.textContent = `co2 mean ${dataObject.quarterMean}, co2 sd ${dataObject.quarterSD}`;
+            quarterlyContainer?.appendChild(quarterlyCo2EventLi);
+        }
     }
     const endTime = form.endTime.value
     const startTime = form.startTime.value

@@ -69,8 +69,17 @@ async def websocket_feed(request, ws: Websocket):
                     wholeRoomStabilitySynopsis.updateRoomStability(reading["seats_occupied"], t)
                     wholeRoomAvgOccupancySynopsis.updateRoomAvgOccupancy(reading["seats_occupied"])
                     
-
-                    crowdcountPeriodSynopsis.resetIfPeriodEnd(reading['acp_ts'])
+                    if crowdcountPeriodSynopsis.resetIfPeriodEnd(reading['acp_ts']):
+                        print("crowd count quarter sent")
+                        await ws.send((json.dumps({
+                                "type":"event", 
+                                "eventType": "quarterlyCrowdCount", 
+                                "quarterMean": crowdcountPeriodSynopsis.periodMeans[-1], 
+                                "quarterSD": crowdcountPeriodSynopsis.periodSDs[-1], 
+                                "quarterFacentrationAvg": wholeRoomAvgOccupancySynopsis.avg, 
+                                "quarterFacentrationSD": wholeRoomAvgOccupancySynopsis.getStdDev()
+                            }
+                        )))
                     crowdcountPeriodSynopsis.updatePeriodMetrics(reading["crowdcount"])
 
                     formattedReading = {
@@ -107,8 +116,15 @@ async def websocket_feed(request, ws: Websocket):
                     sleepTime = max((time_delta/speed) - (workEndTime - workStartTime),0)
                     await asyncio.sleep(sleepTime)
                 crowdcountPeriodSynopsis.resetIfPeriodEnd(np.infty)
-                # print("facentration Avg:", "{:.1f}".format(wholeRoomAvgOccupancySynopsis.avg * 100) + "%", "\nfacentration stdDev:", "{:.1f}".format(wholeRoomAvgOccupancySynopsis.getStdDev() * 100) + "%")
-                # print("quarterly means:",crowdcountPeriodSynopsis.periodMeans, "\nquarterly SDs:", crowdcountPeriodSynopsis.periodSDs)
+                await ws.send((json.dumps({
+                                "type":"event", 
+                                "eventType": "quarterlyCrowdCount", 
+                                "quarterMean": crowdcountPeriodSynopsis.periodMeans[-1], 
+                                "quarterSD": crowdcountPeriodSynopsis.periodSDs[-1], 
+                                "quarterFacentrationAvg": wholeRoomAvgOccupancySynopsis.avg, 
+                                "quarterFacentrationSD": wholeRoomAvgOccupancySynopsis.getStdDev()
+                            }
+                        )))
             except Exception as e:
                 print(f"WebSocket connection closed: {e}")
                 raise e

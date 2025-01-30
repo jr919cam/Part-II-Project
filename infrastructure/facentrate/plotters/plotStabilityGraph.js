@@ -26,7 +26,7 @@ const plotStabilityGraph = (wholeRoomStability, height, width, startTime=null, e
         .attr("width", width)
         .attr("height", height)
         .attr("viewBox", [0, 0, width, height+5])
-        .attr("style", "max-width: 100%; height: auto; border:1px solid black;")
+        .attr("style", "max-width: 100%; height: auto; border:1px solid black; background-color: white; margin: 0.5vw 0.5vw 0 0")
         .attr("id", "stabilityChart")
 
     svg.append("g")

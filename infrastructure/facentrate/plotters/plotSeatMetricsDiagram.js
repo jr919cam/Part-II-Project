@@ -7,8 +7,8 @@ function plotSeatMetricsDiagram(piePercent, concentrationEdges, wholeRoomAvgOccu
     const svg = d3.create("svg")
         .attr("width", width)
         .attr("height", height)
-        .attr("viewBox", [0, 0, width, height + 10])
-        .attr("style", "max-width: 100%; height: auto; border:1px solid black;")
+        .attr("viewBox", [0, 0, width, height+10])
+        .attr("style", "max-width: 100%; height: auto; border:1px solid black; background-color: white; margin:0.5vw 0 0 0.5vw")
         .attr("id", "seatMetricsDiagram")
 
     // avg occupancy

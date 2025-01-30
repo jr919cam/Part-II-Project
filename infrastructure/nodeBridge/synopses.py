@@ -38,11 +38,13 @@ class PeriodSynopsis():
         self.currents["mean"] += delta/self.currents["count"]
         self.currents["m2"] += delta*(crowdcount - self.currents["mean"])
     
-    def resetIfPeriodEnd(self, ts: float):
-        if ts > self.currents["tsLimit"]:
+    def resetIfPeriodEnd(self, ts: float) -> bool:
+        isPastLimit = ts > self.currents["tsLimit"]
+        if isPastLimit:
             self.periodMeans.append("{:.1f}".format(self.currents['mean']))
             self.periodSDs.append("{:.1f}".format((self.currents['m2']/(self.currents["count"] - 1))**(0.5)))
             self.currents = {"count":0, "mean":0, "m2":0, "tsLimit": self.currents["tsLimit"] + self.period}
+        return isPastLimit
 
 class WholeRoomStabilitySynopsis():
     def __init__(self):

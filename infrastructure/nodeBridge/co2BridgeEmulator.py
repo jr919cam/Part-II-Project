@@ -48,7 +48,14 @@ class Co2BridgeEmulator():
             
             try:
                 calibratedCo2 = (row['payload_cooked'][METRIC] - self.baseReading) + globalAvg
-                co2PeriodSynopsis.resetIfPeriodEnd(row['acp_ts'])
+                if co2PeriodSynopsis.resetIfPeriodEnd(row['acp_ts']):
+                    await ws.send((json.dumps({
+                                "type":"event", 
+                                "eventType": "quarterlyCo2", 
+                                "quarterMean": co2PeriodSynopsis.periodMeans[-1], 
+                                "quarterSD": co2PeriodSynopsis.periodSDs[-1], 
+                            }
+                        )))
                 co2PeriodSynopsis.updatePeriodMetrics(calibratedCo2)
                 formattedReading = {
                     "acp_ts":row["acp_ts"],
@@ -70,4 +77,10 @@ class Co2BridgeEmulator():
             sleepTime = max((time_delta/self.speed) - (workEndTime - workStartTime),0)
             await asyncio.sleep(sleepTime)
         co2PeriodSynopsis.resetIfPeriodEnd(np.infty)
-        print("quarterly co2 means:",co2PeriodSynopsis.periodMeans, "\nquarterly co2 SDs:", co2PeriodSynopsis.periodSDs)
+        await ws.send((json.dumps({
+                            "type":"event", 
+                            "eventType": "quarterlyCo2", 
+                            "quarterMean": co2PeriodSynopsis.periodMeans[-1], 
+                            "quarterSD": co2PeriodSynopsis.periodSDs[-1], 
+                        }
+                    )))

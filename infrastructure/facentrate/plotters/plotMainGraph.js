@@ -34,7 +34,7 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
         .attr("width", width)
         .attr("height", height)
         .attr("viewBox", [0, 0, width, height + 10])
-        .attr("style", "max-width: 100%; height: auto; border:1px solid black;")
+        .attr("style", "max-width: 100%; height: auto; border:1px solid black; background-color: white; margin:0 0.5vw 0.5vw 0")
         .attr("id", "chart")
 
     svg.append("g")
