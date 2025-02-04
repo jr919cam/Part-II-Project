@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emulated Node Data</title>
+    <link rel="stylesheet" href="infrastructure\facentrate\emulatednode\styles.css">
 </head>
 
 <script type="module">
@@ -170,8 +171,25 @@
             </div>
         </div>
 
-        <div id="quarterlyContainer">
-
+        <div style="display: flex; flex-direction: row;">
+            <table id="crowdcountPeriodTable" style="width: 65vw; margin: 1vw 0.5vw 0 0; border: 1px solid black; border-radius: 0.5vw;">
+                <thead>
+                    <th>Crowdcount avg</th>
+                    <th>Crowdcount sd</th>
+                    <th>Facentration avg</th>
+                    <th>Facentration sd</th>
+                </thead>
+                <tbody id="crowdcountPeriodTableBody">
+                </tbody>
+            </table>
+            <table id="co2PeriodTable" style="width: 34vw; margin: 1vw 0 0 0.5vw; border: 1px solid black; border-radius: 0.5vw;">
+                <thead>
+                    <th>CO2 avg</th>
+                    <th>CO2 sd</th>
+                </thead>
+                <tbody id="co2PeriodTableBody">
+                </tbody>
+            </table>
         </div>
     </div>
 

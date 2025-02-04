@@ -15,7 +15,7 @@ app = Sanic("nodeBridgeEmulator")
 
 data = []
 
-EMULATIONPERIODSPLIT = 15 * 60 # 15 min periods
+EMULATIONPERIODSPLIT = 10 * 60 # 10 min periods
 
 def getNodeDf(day: int, startTimeStamp: int, endTimeStamp: int)->pd.DataFrame:
     if day[:4] == '2024':
@@ -80,6 +80,7 @@ async def websocket_feed(request, ws: Websocket):
                                 "quarterFacentrationSD": wholeRoomAvgOccupancySynopsis.getStdDev()
                             }
                         )))
+                        wholeRoomAvgOccupancySynopsis.reset()
                     crowdcountPeriodSynopsis.updatePeriodMetrics(reading["crowdcount"])
 
                     formattedReading = {

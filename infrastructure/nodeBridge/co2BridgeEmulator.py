@@ -9,7 +9,7 @@ from synopses import PeriodSynopsis
 
 METRIC = "co2"
 SENSORSAMPLE = ['058ae3', '0559f3', '058ac8', '058ac6', '058b12', '058ac0', '058b16', '058ac4', '058ae6']
-EMULATIONPERIODSPLIT = 15 * 60
+EMULATIONPERIODSPLIT = 10 * 60
 
 class Co2BridgeEmulator():
 

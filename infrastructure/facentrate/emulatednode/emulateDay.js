@@ -100,6 +100,16 @@ const wsOnopen = (dataArrObj, seat) => {
     newLectureEvents.id = "lectureEvents"
     oldLectureEvents?.replaceWith(newLectureEvents);
 
+    const oldcrowdcountPeriodTableBody = document.getElementById("crowdcountPeriodTableBody");
+    const newcrowdcountPeriodTableBody = document.createElement("tbody");
+    newcrowdcountPeriodTableBody.id = "crowdcountPeriodTableBody"
+    oldcrowdcountPeriodTableBody?.replaceWith(newcrowdcountPeriodTableBody);
+
+    const oldco2PeriodTableBody = document.getElementById("co2PeriodTableBody");
+    const newco2PeriodTableBody = document.createElement("tbody");
+    newco2PeriodTableBody.id = "co2PeriodTableBody"
+    oldco2PeriodTableBody?.replaceWith(newco2PeriodTableBody);
+
     dataArrObj.dataArr = []
     dataArrObj.eventArr = []
     dataArrObj.barcodeArr = []
@@ -200,16 +210,26 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
             lectureEvents?.appendChild(lectureEventLi);
         }
         if(dataObject.eventType === "quarterlyCrowdCount") {
-            const quarterlyContainer = document.getElementById("quarterlyContainer")
-            const quarterlyCrowdEventLi = document.createElement("li")
-            quarterlyCrowdEventLi.textContent = `mean ${dataObject.quarterMean}, sd ${dataObject.quarterSD}, facentration avg ${(dataObject.quarterFacentrationAvg * 100).toFixed(1)}%, facentration sd ${(dataObject.quarterFacentrationSD * 100).toFixed(1)}%`;
-            quarterlyContainer?.appendChild(quarterlyCrowdEventLi);
+            const crowdcountPeriodTable = document.getElementById("crowdcountPeriodTableBody")
+            const crowdcountPeriodTableRow = document.createElement("tr")
+            const tableValues = [`${dataObject.quarterMean}`, `${dataObject.quarterSD}`, `${(dataObject.quarterFacentrationAvg * 100).toFixed(1)}%`, ` ${(dataObject.quarterFacentrationSD * 100).toFixed(1)}%`]
+            tableValues.map((tableValue) => {
+                const crowdcountPeriodTableRowDatum = document.createElement("td")
+                crowdcountPeriodTableRowDatum.textContent = tableValue
+                crowdcountPeriodTableRow.appendChild(crowdcountPeriodTableRowDatum);
+            })
+            crowdcountPeriodTable.appendChild(crowdcountPeriodTableRow)
         }
         if(dataObject.eventType === "quarterlyCo2") {
-            const quarterlyContainer = document.getElementById("quarterlyContainer")
-            const quarterlyCo2EventLi = document.createElement("li")
-            quarterlyCo2EventLi.textContent = `co2 mean ${dataObject.quarterMean}, co2 sd ${dataObject.quarterSD}`;
-            quarterlyContainer?.appendChild(quarterlyCo2EventLi);
+            const co2PeriodTable = document.getElementById("co2PeriodTableBody")
+            const co2PeriodTableRow = document.createElement("tr")
+            const tableValues = [`${dataObject.quarterMean}`, `${dataObject.quarterSD}`]
+            tableValues.map((tableValue) => {
+                const co2PeriodTableRowDatum = document.createElement("td")
+                co2PeriodTableRowDatum.textContent = tableValue
+                co2PeriodTableRow.appendChild(co2PeriodTableRowDatum);
+            })
+            co2PeriodTable.appendChild(co2PeriodTableRow)
         }
     }
     const endTime = form.endTime.value

@@ -33,13 +33,14 @@ async def websocket_feed(request, ws: Websocket):
     wholeRoomStabilitySynopsis = WholeRoomStabilitySynopsis()
     percentageConcentrationSynopsis = PercentageConcentrationSynopsis(None)
     try:
+        t=0
         while True:
             if len(node_published_data) > 0:
                 latestResponse = node_published_data.pop(0)[2:-1]
                 latestResponseJSON = json.loads(latestResponse)
                 acp_ts, acp_id, acp_type_id, payload_cooked = latestResponseJSON.values()
                 bax, crowdcount, seats_occupied, occupancy_filled = payload_cooked.values()
-                wholeRoomStabilitySynopsis.updateRoomStability(seats_occupied)
+                wholeRoomStabilitySynopsis.updateRoomStability(seats_occupied, t)
 
                 if percentageConcentrationSynopsis.seat != None:
                     percentageConcentrationSynopsis.updateAverage(seats_occupied)
@@ -62,6 +63,7 @@ async def websocket_feed(request, ws: Websocket):
                 }
                 await ws.send(json.dumps(enhancedReading))
             await asyncio.sleep(0.1)
+            t=1
     except Exception as e:
         print(f"WebSocket connection closed: {e}")
 
