@@ -1,3 +1,5 @@
+import plotPrognosis from "/infrastructure/facentrate/plotters/plotPrognosis.js";
+
 const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, startTime=null, endTime=null, day=null) => {
     const startTimeString = `${day}T${startTime}:00`;
     const start = new Date(startTimeString);
@@ -7,6 +9,24 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     const end = new Date(endTimeString);
     const endTimeStamp = Math.floor(end.getTime() / 1000);
 
+    const lectureBounds = []
+    let prevBound = null
+    for(let i = 0; i < events.length; i++) {
+        if(events[i].event_type == "lectureUp" && prevBound != "lectureUp") {
+            lectureBounds.push([events[i].acp_ts, endTimeStamp])
+            prevBound = "lectureUp"
+        }
+        if(events[i].event_type == "lectureDown" && prevBound != "lectureDown") {
+            lectureBounds[lectureBounds.length-1][1] = events[i].acp_ts
+            prevBound = "lectureDown"
+        }
+    }
+    const means = [80, 85]
+
+    const sds = [10, 7]
+
+    const grads = [0.01, 0]
+    
     const marginTop = 20;
     const marginRight = 50;
     const marginBottom = 45;
@@ -34,7 +54,7 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
         .attr("width", width)
         .attr("height", height)
         .attr("viewBox", [0, 0, width, height + 10])
-        .attr("style", "max-width: 100%; height: auto; border:1px solid black; background-color: white; margin:0 0.5vw 0.5vw 0")
+        .attr("style", "max-width: 100%; height: auto; background-color: white;")
         .attr("id", "chart")
 
     svg.append("g")
@@ -69,7 +89,7 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     svg.append("path")
         .datum(data)
         .attr("fill", "none")
-        .attr("stroke", "orange")
+        .attr("stroke", "#ffca78")
         .attr("stroke-width", 5)
         .attr("opacity", 0.5)
         .attr("d", crowdCountLine);
@@ -150,7 +170,7 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
         .attr("y1", marginTop)
         .attr("x2", e => x(e.acp_ts)) 
         .attr("y2", height - marginBottom)
-    .attr("stroke", e=>e.event_type === "lectureUp" ? "green" : "red")
+    .attr("stroke", e=>e.event_type === "lectureUp" ? "#7fff78" : "#ff7878")
     .attr("stroke-opacity", 0.5)
     .attr("stroke-dasharray", "4,2")
     .attr("stroke-width", 7);
@@ -177,16 +197,18 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
         .attr("width", (b) => x(b.end_acp_ts) - x(b.start_acp_ts))
         .attr("height", 150)
         .attr("fill-opacity", 0.5);
+
+    plotPrognosis(svg, x, y, means, sds, grads, lectureBounds)
     
     svg.append("rect")
         .attr("width", width/15)
         .attr("height", height/5)
         .attr("transform", `translate(${width - width/17.5},${height/40})`)
         .attr("fill", "#eaeaea")
-    svg.append("circle").attr("cx", width - width/20).attr("cy",height/20).attr("r", 6).style("fill", "green")
-    svg.append("circle").attr("cx", width - width/20).attr("cy",2*height/20).attr("r", 6).style("fill", "red")
-    svg.append("circle").attr("cx", width - width/20).attr("cy",3*height/20).attr("r", 6).style("fill", "blue")
-    svg.append("circle").attr("cx", width - width/20).attr("cy",4*height/20).attr("r", 6).style("fill", "orange")
+    svg.append("circle").attr("cx", width - width/20).attr("cy",height/20).attr("r", 6).style("fill", "#7fff78").style("stroke", "black").attr("stroke-width", 1)
+    svg.append("circle").attr("cx", width - width/20).attr("cy",2*height/20).attr("r", 6).style("fill", "#ff7878").style("stroke", "black").attr("stroke-width", 1)
+    svg.append("circle").attr("cx", width - width/20).attr("cy",3*height/20).attr("r", 6).style("fill", "blue").style("stroke", "black").attr("stroke-width", 1)
+    svg.append("circle").attr("cx", width - width/20).attr("cy",4*height/20).attr("r", 6).style("fill", "#ffca78").style("stroke", "black").attr("stroke-width", 1)
     svg.append("text").attr("x", width - width/20 + 15).attr("y", height/20).text("lecture up").style("font-size", "15px").attr("alignment-baseline","middle")
     svg.append("text").attr("x", width - width/20 + 15).attr("y", 2*height/20).text("lecture down").style("font-size", "15px").attr("alignment-baseline","middle")
     svg.append("text").attr("x", width - width/20 + 15).attr("y", 3*height/20).text("co2").style("font-size", "15px").attr("alignment-baseline","middle")

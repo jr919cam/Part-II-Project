@@ -37,7 +37,7 @@ const plotSeatDiagram = (seats, seatsHistory) => {
     const svg = d3.select("body")
             .append("svg")
             .attr("viewBox", [0, 0, width, height + 10])
-            .attr("style", "max-width: 100%; height: auto; border:1px solid black; background-color: white; margin:0 0 0.5vw 0.5vw")
+            .attr("style", "max-width: 100%; height: auto; background-color: white;")
             .attr("id", "seatDiagram");
 
     svg.append("image")
