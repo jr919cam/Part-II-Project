@@ -1,11 +1,9 @@
 from datetime import datetime
 import json
 import time
-import numpy as np
 from sanic import Websocket
 import asyncio
 import pandas as pd
-from synopses import LectureBoundarySynopsis, PeriodSynopsis
 
 METRIC = "co2"
 SENSORSAMPLE = ['058ae3', '058ac0', '058ac1', '058ac2', '058ac2', '058ade', '058ae4', '058b19', '0520a3', '0520a5']
@@ -43,13 +41,11 @@ class Co2BridgeEmulator():
                 count += nearestRow['payload_cooked'][METRIC]
             except KeyError as e:
                 pass
-                # print("no co2 reading for", SENSORSAMPLE[i], "at", nearestRow['acp_ts'])
+                print("no co2 reading for", SENSORSAMPLE[i], "at", nearestRow['acp_ts'])
         return count/len(SENSORSAMPLE)
 
         
     async def startSendLoop(self, ws: Websocket):
-        # co2PeriodSynopsis = PeriodSynopsis(EMULATIONPERIODSPLIT, self.startTime)
-
         self.sensorReadingDf = self.sensorReadingDf[(self.sensorReadingDf["acp_ts"] >= self.startTime) & (self.sensorReadingDf["acp_ts"] <= self.endTime)].reset_index()
         await asyncio.sleep(max((float(self.sensorReadingDf.loc[0]['acp_ts']) - self.startTime)/(self.speed), 0.1))
         for t, row in self.sensorReadingDf.iterrows():
@@ -67,8 +63,7 @@ class Co2BridgeEmulator():
                 }
                 await ws.send(json.dumps(formattedReading))
             except KeyError:
-                # print("no main co2 reading at: ", datetime.fromtimestamp(row["acp_ts"]).strftime('%H:%M:%S'))
-                pass
+                print("no main co2 reading at: ", datetime.fromtimestamp(row["acp_ts"]).strftime('%H:%M:%S'))
             if t == len(self.sensorReadingDf) - 1:
                 break
             time_delta = float(self.sensorReadingDf.loc[t+1]['acp_ts']) - float(row['acp_ts'])

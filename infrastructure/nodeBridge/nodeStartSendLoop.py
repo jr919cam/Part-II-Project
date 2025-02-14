@@ -40,27 +40,39 @@ async def sendReading(reading, percentageConcentrationSynopsis, wholeRoomStabili
     }
     await ws.send(json.dumps(formattedReading))
 
-async def handleLectureBoundaries(lectureBoundarySynopsis, reading, nodeDf, t, ws, leccentrationSynopsis):
+async def handleLectureBoundaries(lectureBoundarySynopsis, reading, nodeDf, t, ws, leccentrationSynopsis, co2info={}):
     lectureBoundarySynopsis.updateEMA(nodeDf, t)
+
     if lectureBoundarySynopsis.isEMALectureUpEvent(reading, t):
         if lectureBoundarySynopsis.wasLecture():
+            co2info["inLecture"] = False
+            co2info["wasLecture"] = True
+            leccentrationSynopsis.lectureCount += 1
             await ws.send((json.dumps({
                     "type":"event", 
                     "eventType": "leccentration", 
+                    "lecture": leccentrationSynopsis.lectureCount,
                     "leccentration": leccentrationSynopsis.leccentration, 
                     "leccentrationSD": leccentrationSynopsis.getStdDev()
                 }
             )))
             leccentrationSynopsis.reset()
         await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureUp"}))
+
     if lectureBoundarySynopsis.hasEMAlectureSettled(reading, t):
+        co2info["inLecture"] = True
         leccentrationSynopsis.reset()
         await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureSettled"}))
+
     if lectureBoundarySynopsis.isEMALectureDownEvent(reading, t):
         if lectureBoundarySynopsis.wasLecture():
+            co2info["inLecture"] = False
+            co2info["wasLecture"] = True
+            leccentrationSynopsis.lectureCount += 1
             await ws.send((json.dumps({
                     "type":"event", 
                     "eventType": "leccentration", 
+                    "lecture": leccentrationSynopsis.lectureCount,
                     "leccentration": leccentrationSynopsis.leccentration, 
                     "leccentrationSD": leccentrationSynopsis.getStdDev()
                 }

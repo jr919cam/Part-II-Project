@@ -64,6 +64,7 @@ class LeccentrationSynopsis():
         self.readingsCount = 0
         self.counts = defaultdict(int)
         self.leccentration = 0
+        self.lectureCount = 0
 
     def updateLeccentration(self, seatsOccupied):
         self.readingsCount += 1

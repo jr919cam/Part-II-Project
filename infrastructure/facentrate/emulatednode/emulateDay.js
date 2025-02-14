@@ -215,11 +215,12 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
             const lectureEventLi = document.createElement("li")
             lectureEventLi.textContent = `Lecture down @ ${hours}:${minutes}:${seconds}`;
             lectureEvents?.appendChild(lectureEventLi);
+            dataArrObj.seatHistoryArr = []
         }
         if(dataObject.eventType === "leccentration") {
             const crowdcountPeriodTable = document.getElementById("crowdcountPeriodTableBody")
             const crowdcountPeriodTableRow = document.createElement("tr")
-            const tableValues = ["", `${(dataObject.leccentration * 100).toFixed(1)}%`, ` ${(dataObject.leccentrationSD * 100).toFixed(1)}%`]
+            const tableValues = [`${(dataObject.lecture)}`, `${(dataObject.leccentration * 100).toFixed(1)}%`, ` ${(dataObject.leccentrationSD * 100).toFixed(1)}%`]
             tableValues.map((tableValue) => {
                 const crowdcountPeriodTableRowDatum = document.createElement("td")
                 crowdcountPeriodTableRowDatum.textContent = tableValue
@@ -227,10 +228,10 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
             })
             crowdcountPeriodTable.appendChild(crowdcountPeriodTableRow)
         }
-        if(dataObject.eventType === "quarterlyCo2") {
+        if(dataObject.eventType === "lectureCo2") {
             const co2PeriodTable = document.getElementById("co2PeriodTableBody")
             const co2PeriodTableRow = document.createElement("tr")
-            const tableValues = [`${dataObject.quarterMean}`, `${dataObject.quarterSD}`]
+            const tableValues = [`${dataObject.co2Avg}`, `${dataObject.co2SD}`]
             tableValues.map((tableValue) => {
                 const co2PeriodTableRowDatum = document.createElement("td")
                 co2PeriodTableRowDatum.textContent = tableValue

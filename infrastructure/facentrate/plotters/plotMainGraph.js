@@ -204,17 +204,19 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     
     svg.append("rect")
         .attr("width", width/15)
-        .attr("height", height/5)
+        .attr("height", height/4)
         .attr("transform", `translate(${width - width/17.5},${height/40})`)
         .attr("fill", "#eaeaea")
     svg.append("circle").attr("cx", width - width/20).attr("cy",height/20).attr("r", 6).style("fill", "#7fff78").style("stroke", "black").attr("stroke-width", 1)
     svg.append("circle").attr("cx", width - width/20).attr("cy",2*height/20).attr("r", 6).style("fill", "#ff7878").style("stroke", "black").attr("stroke-width", 1)
-    svg.append("circle").attr("cx", width - width/20).attr("cy",3*height/20).attr("r", 6).style("fill", "blue").style("stroke", "black").attr("stroke-width", 1)
+    svg.append("circle").attr("cx", width - width/20).attr("cy",3*height/20).attr("r", 6).style("fill", "#fc66ff").style("stroke", "black").attr("stroke-width", 1)
     svg.append("circle").attr("cx", width - width/20).attr("cy",4*height/20).attr("r", 6).style("fill", "#ffca78").style("stroke", "black").attr("stroke-width", 1)
+    svg.append("circle").attr("cx", width - width/20).attr("cy",5*height/20).attr("r", 6).style("fill", "blue").style("stroke", "black").attr("stroke-width", 1)
     svg.append("text").attr("x", width - width/20 + 15).attr("y", height/20).text("lecture up").style("font-size", "15px").attr("alignment-baseline","middle")
     svg.append("text").attr("x", width - width/20 + 15).attr("y", 2*height/20).text("lecture down").style("font-size", "15px").attr("alignment-baseline","middle")
-    svg.append("text").attr("x", width - width/20 + 15).attr("y", 3*height/20).text("co2").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", width - width/20 + 15).attr("y", 3*height/20).text("lecture stable").style("font-size", "15px").attr("alignment-baseline","middle")
     svg.append("text").attr("x", width - width/20 + 15).attr("y", 4*height/20).text("crowd count").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", width - width/20 + 15).attr("y", 5*height/20).text("co2").style("font-size", "15px").attr("alignment-baseline","middle")
 
     return svg.node();
 }
