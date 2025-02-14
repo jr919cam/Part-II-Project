@@ -81,7 +81,7 @@ const emulateDay = (event) => {
     const seat = form.seat.value;
     const sensor = form.sensor.value;
 
-    const startTimeTS = new Date(`${day}T${startTime}:00 GMT`)
+    const startTimeTS = new Date(`${day}T${startTime}:00Z`)
     wsObj.ws = new WebSocket(
         `ws://localhost:8002/ws?speed=${speed}&day=${day}&startTime=${startTime}&endTime=${endTime}&seat=${seat}&sensor=${sensor}&alpha=${configObj.alpha}`);
     wsObj.ws.onclose = wsOnclose;
@@ -203,16 +203,23 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
             lectureEvents?.appendChild(lectureEventLi);
             dataArrObj.seatHistoryArr = []
         }
+        if(dataObject.eventType === "lectureSettled") {
+            dataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"lectureSettled"})
+            const lectureEventLi = document.createElement("li")
+            lectureEventLi.textContent = `Lecture settled @ ${hours}:${minutes}:${seconds}`;
+            lectureEvents?.appendChild(lectureEventLi);
+            dataArrObj.seatHistoryArr = []
+        }
         if(dataObject.eventType === "lectureDown") {
             dataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"lectureDown"})
             const lectureEventLi = document.createElement("li")
             lectureEventLi.textContent = `Lecture down @ ${hours}:${minutes}:${seconds}`;
             lectureEvents?.appendChild(lectureEventLi);
         }
-        if(dataObject.eventType === "quarterlyCrowdCount") {
+        if(dataObject.eventType === "leccentration") {
             const crowdcountPeriodTable = document.getElementById("crowdcountPeriodTableBody")
             const crowdcountPeriodTableRow = document.createElement("tr")
-            const tableValues = [`${dataObject.quarterMean}`, `${dataObject.quarterSD}`, `${(dataObject.quarterFacentrationAvg * 100).toFixed(1)}%`, ` ${(dataObject.quarterFacentrationSD * 100).toFixed(1)}%`]
+            const tableValues = ["", `${(dataObject.leccentration * 100).toFixed(1)}%`, ` ${(dataObject.leccentrationSD * 100).toFixed(1)}%`]
             tableValues.map((tableValue) => {
                 const crowdcountPeriodTableRowDatum = document.createElement("td")
                 crowdcountPeriodTableRowDatum.textContent = tableValue

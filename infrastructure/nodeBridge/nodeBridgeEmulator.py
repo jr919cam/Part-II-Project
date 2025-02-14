@@ -1,14 +1,13 @@
 import asyncio
 from datetime import datetime
 import time
-import numpy as np
 import pandas as pd
 from sanic import Sanic
 from sanic import Websocket
-import json
 
-from RollingSeatVarianceEngine import RollingSeatVarianceEngine
-from synopses import LectureBoundarySynopsis, PercentageConcentrationSynopsis, WholeRoomStabilitySynopsis, WholeRoomAvgOccupancySynopsis, PeriodSynopsis
+from nodeStartSendLoop import nodeStartSendLoop
+from nodeStartSkipperSendLoop import nodeStartSkipperSendLoop
+from synopses import LectureBoundarySynopsis, PercentageConcentrationSynopsis, WholeRoomStabilitySynopsis, LeccentrationSynopsis, PeriodSynopsis
 from co2BridgeEmulator import Co2BridgeEmulator
 
 app = Sanic("nodeBridgeEmulator")
@@ -47,94 +46,31 @@ async def websocket_feed(request, ws: Websocket):
     lectureBoundarySynopsis = LectureBoundarySynopsis(0, alpha)
     percentageConcentrationSynopsis = PercentageConcentrationSynopsis(seat)
     wholeRoomStabilitySynopsis = WholeRoomStabilitySynopsis()
-    wholeRoomAvgOccupancySynopsis = WholeRoomAvgOccupancySynopsis()
-    crowdcountPeriodSynopsis = PeriodSynopsis(EMULATIONPERIODSPLIT, startTimestamp)
+    leccentrationSynopsis = LeccentrationSynopsis()
 
     co2BridgeEmulator = Co2BridgeEmulator(sensor, day, startTimestamp, endTimestamp, speed)
 
-    # Optional variance engine for seat, does not sync correctly at high speeds
-    # varianceEngine = RollingSeatVarianceEngine(seat, speed=speed)
-
     nodeDf = getNodeDf(day, startTimestamp, endTimestamp)
     if(len(nodeDf) > 0):
-        async def nodeStartSendLoop():
-            try:
-                await asyncio.sleep(max((float(nodeDf.loc[0]['acp_ts']) - startTimestamp)/(speed), 0.1))
-                for t, reading in nodeDf.iterrows():
-                    workStartTime = time.time()
-
-                    if percentageConcentrationSynopsis.seat != None:
-                        percentageConcentrationSynopsis.updateAverage(reading["seats_occupied"])
-                    
-                    wholeRoomStabilitySynopsis.updateRoomStability(reading["seats_occupied"], t)
-                    wholeRoomAvgOccupancySynopsis.updateRoomAvgOccupancy(reading["seats_occupied"])
-                    
-                    if crowdcountPeriodSynopsis.resetIfPeriodEnd(reading['acp_ts']):
-                        print("crowd count quarter sent")
-                        await ws.send((json.dumps({
-                                "type":"event", 
-                                "eventType": "quarterlyCrowdCount", 
-                                "quarterMean": crowdcountPeriodSynopsis.periodMeans[-1], 
-                                "quarterSD": crowdcountPeriodSynopsis.periodSDs[-1], 
-                                "quarterFacentrationAvg": wholeRoomAvgOccupancySynopsis.avg, 
-                                "quarterFacentrationSD": wholeRoomAvgOccupancySynopsis.getStdDev()
-                            }
-                        )))
-                        wholeRoomAvgOccupancySynopsis.reset()
-                    crowdcountPeriodSynopsis.updatePeriodMetrics(reading["crowdcount"])
-
-                    formattedReading = {
-                        "acp_ts":reading["acp_ts"],
-                        "acp_id":reading["acp_id"],
-                        "payload_cooked": {
-                            "crowdcount": reading["crowdcount"],
-                            "seats_occupied": reading["seats_occupied"], 
-                            "percent_concentration": percentageConcentrationSynopsis.avg, 
-                            "seatsOccupiedDiffCountTotal":wholeRoomStabilitySynopsis.seatsOccupiedDiffCountTotal,
-                            "seatsOccupiedDiffCount":wholeRoomStabilitySynopsis.seatsOccupiedDiffCount,
-                            "roomAvgOccupancy": wholeRoomAvgOccupancySynopsis.avg
-                        },
-                        "type":"reading", 
-                        "readingType":"node"
-                    }
-
-                    # varianceEngine.incrementChunkCounter(seats_occupied)
-
-                    await ws.send(json.dumps(formattedReading))
-                    lectureBoundarySynopsis.updateEMA(nodeDf, t)
-                    if lectureBoundarySynopsis.isEMALectureUpEvent(reading, t):
-                        # wholeRoomAvgOccupancySynopsis.reset()
-                        await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureUp"}))
-                    if lectureBoundarySynopsis.isEMALectureDownEvent(reading, t):
-                        # wholeRoomAvgOccupancySynopsis.reset()
-                        await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureDown"}))
-                    if t == len(nodeDf) - 1:
-                        break
-
-                    time_delta = float(nodeDf.loc[t+1]['acp_ts']) - float(reading['acp_ts'])
-                    
-                    workEndTime = time.time()
-                    sleepTime = max((time_delta/speed) - (workEndTime - workStartTime),0)
-                    await asyncio.sleep(sleepTime)
-                crowdcountPeriodSynopsis.resetIfPeriodEnd(np.infty)
-                await ws.send((json.dumps({
-                                "type":"event", 
-                                "eventType": "quarterlyCrowdCount", 
-                                "quarterMean": crowdcountPeriodSynopsis.periodMeans[-1], 
-                                "quarterSD": crowdcountPeriodSynopsis.periodSDs[-1], 
-                                "quarterFacentrationAvg": wholeRoomAvgOccupancySynopsis.avg, 
-                                "quarterFacentrationSD": wholeRoomAvgOccupancySynopsis.getStdDev()
-                            }
-                        )))
-            except Exception as e:
-                print(f"WebSocket connection closed: {e}")
-                raise e
-            
-        await asyncio.gather(
-            # varianceEngine.startVarianceEngine(ws, startTimestamp),
-            co2BridgeEmulator.startSendLoop(ws),
-            nodeStartSendLoop()
+        await nodeStartSkipperSendLoop(
+            nodeDf, 
+            co2BridgeEmulator, 
+            startTimestamp, 
+            endTimestamp, 
+            speed, 
+            ws, 
+            percentageConcentrationSynopsis, 
+            wholeRoomStabilitySynopsis, 
+            leccentrationSynopsis,
+            lectureBoundarySynopsis
         )
+        # await asyncio.gather(
+        #     co2BridgeEmulator.startSendLoop(ws),
+        #     nodeStartSendLoop(percentageConcentrationSynopsis, wholeRoomStabilitySynopsis, leccentrationSynopsis, lectureBoundarySynopsis, nodeDf, startTimestamp, speed, ws)
+        # )
+
+        
+
 
 if __name__ == "__main__":
     app.run(port=8002, auto_reload=True)

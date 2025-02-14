@@ -1,8 +1,7 @@
 function plotSeatMetricsDiagram(piePercent, concentrationEdges, wholeRoomAvgOccupancy, timeElapsed) {
     const width = 600;
     const height = 300;
-    
-    const concentrationEdgesPercent = concentrationEdges ? Math.pow(Math.E, -150 * concentrationEdges/timeElapsed) : 0
+    const concentrationEdgesPercent = concentrationEdges ? Math.pow(Math.E, -150 * concentrationEdges/timeElapsed) : 0;
 
     const svg = d3.create("svg")
         .attr("width", width)

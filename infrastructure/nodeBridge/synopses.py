@@ -59,41 +59,51 @@ class WholeRoomStabilitySynopsis():
             self.seatsOccupiedDiffCount = len(seatsOccupiedSet.symmetric_difference(self.prevSeatsOccupied))
         self.prevSeatsOccupied = seatsOccupiedSet
 
-class WholeRoomAvgOccupancySynopsis():
+class LeccentrationSynopsis():
     def __init__(self):
         self.readingsCount = 0
         self.counts = defaultdict(int)
-        self.avg = 0
+        self.leccentration = 0
 
-    def updateRoomAvgOccupancy(self, seatsOccupied):
+    def updateLeccentration(self, seatsOccupied):
         self.readingsCount += 1
         for seat in seatsOccupied:
             self.counts[seat] += 1
         if self.readingsCount > 0 and len(self.counts) > 0:
-            self.avg = (sum(self.counts.values()) / self.readingsCount ) / len(self.counts)
+            self.leccentration = (sum(self.counts.values()) / self.readingsCount ) / len(self.counts)
     
     def getStdDev(self):
-        return np.sqrt(sum([(self.avg - count/self.readingsCount) ** 2 for count in self.counts.values()]) / len(self.counts))
+        if len(self.counts) == 0: return 0
+        return np.sqrt(sum([(self.leccentration - count/self.readingsCount) ** 2 for count in self.counts.values()]) / len(self.counts))
 
     def reset(self):
         self.readingsCount = 0
         self.counts = defaultdict(int)
-        self.avg = 0
+        self.leccentration = 0
 
 class LectureBoundarySynopsis():
-    def __init__(self, EMA, alpha):
-        self.EMA = EMA
+    def __init__(self, diffEMA, alpha):
+        self.diffEMA = diffEMA
         self.alpha = alpha
         self.timeSinceLastUpEvent = -1
         self.timeSinceLastDownEvent = -1
         self.timeDelta = 0
+
+        self.isLectureEntering = False
+        self.isLectureExiting = False
+        self.inLecture = False
+        self.ccEMA = 0
+        self.varEMA = 0
 
     def updateEMA(self, nodeDf: pd.DataFrame, t:int):
         if t < 1:
             return
         crowdcountDelta = nodeDf.loc[t]['crowdcount'] - nodeDf.loc[t-1]['crowdcount']
         self.timeDelta = float(nodeDf.loc[t]['acp_ts']) - float(nodeDf.loc[t-1]['acp_ts'])
-        self.EMA = self.alpha * crowdcountDelta + (1-self.alpha) * self.EMA
+        self.diffEMA = self.alpha * crowdcountDelta + (1-self.alpha) * self.diffEMA
+
+        self.ccEMA = 0.05 * (nodeDf.loc[t]['crowdcount']) + (1-0.05) * self.ccEMA
+        self.varEMA = 0.1 * np.sqrt((nodeDf.loc[t]['crowdcount'] - self.ccEMA)**2) + (1-0.1) * self.varEMA
 
     def isEMALectureUpEvent(self, nodeReading: pd.Series, t: int)->bool:
         if t < 1:
@@ -101,20 +111,43 @@ class LectureBoundarySynopsis():
         if self.timeSinceLastUpEvent >= 0 and self.timeSinceLastUpEvent < 10 * 60:
             self.timeSinceLastUpEvent += self.timeDelta
             return False
-        if (self.EMA * 13.5 / (np.log(nodeReading['crowdcount'] + 1) + 1)) < 1:
+        if (self.diffEMA * 13.5 / (np.log(nodeReading['crowdcount'] + 1) + 1)) < 1:
             return False
         self.timeSinceLastUpEvent = 0
         self.timeSinceLastDownEvent = -1
+        self.isLectureEntering = True
         return True
     
+    def hasEMAlectureSettled(self, nodeReading: pd.Series, t: int)->bool:
+        if t < 1:
+            return False
+        if not self.isLectureEntering and not self.isLectureExiting:
+            return False
+        print(self.varEMA)
+        if self.varEMA < 1.5:
+            self.isLectureEntering = False
+            self.isLectureExiting = False
+            if nodeReading['crowdcount'] < 5:
+                return False
+            self.inLecture = True
+            return True
+        return False
+
     def isEMALectureDownEvent(self, nodeReading: pd.Series, t:int)->bool:
         if t < 1:
             return False
         if self.timeSinceLastDownEvent >= 0 and self.timeSinceLastDownEvent < 10 * 60:
             self.timeSinceLastDownEvent += self.timeDelta
             return False
-        if (self.EMA * 12.5 / (np.log(nodeReading['crowdcount'] + 1) + 1)) > -1:
+        if (self.diffEMA * 12.5 / (np.log(nodeReading['crowdcount'] + 1) + 1)) > -1:
             return False
         self.timeSinceLastDownEvent = 0
         self.timeSinceLastUpEvent = -1
+        self.isLectureExiting = True
+        return True
+    
+    def wasLecture(self):
+        if not self.inLecture: 
+            return False
+        self.inLecture = False
         return True

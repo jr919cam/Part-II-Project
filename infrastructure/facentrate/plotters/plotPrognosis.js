@@ -1,7 +1,6 @@
 // Intended to be called within other D3.js filess
 
 const plotPrognosis = (svg, xDomainToRange, yDomainToRange, means, sds, grads, lectureBounds) => {
-  console.log(lectureBounds)
   lectureBounds.map(([startTs, endTs], i) => {
     const startTsX = xDomainToRange(startTs)
     const endTsX = xDomainToRange(endTs)

@@ -56,8 +56,7 @@
             <div class="glowHoverDiv">
                 <table id="crowdcountPeriodTable" style="width: 65vw;">
                         <thead>
-                            <th>Crowdcount avg</th>
-                            <th>Crowdcount sd</th>
+                            <th>Lecture</th>
                             <th>Facentration avg</th>
                             <th>Facentration sd</th>
                         </thead>
@@ -126,7 +125,6 @@
             
             // plot seats
             const seatSvg = plotSeatDiagram(Object.keys(dataObject.payload_cooked.seats_occupied), [])
-            console.log(seatSvg)
             seatDiagram.replaceWith(seatSvg)
 
             li.textContent = `${dataObject.payload_cooked.crowdcount} @ ${dataObject.acp_ts}`;

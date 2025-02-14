@@ -1,4 +1,5 @@
 import plotPrognosis from "/infrastructure/facentrate/plotters/plotPrognosis.js";
+import plotPrognosisBox from "/infrastructure/facentrate/plotters/plotPrognosisBox.js";
 
 const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, startTime=null, endTime=null, day=null) => {
     const startTimeString = `${day}T${startTime}:00`;
@@ -170,7 +171,7 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
         .attr("y1", marginTop)
         .attr("x2", e => x(e.acp_ts)) 
         .attr("y2", height - marginBottom)
-    .attr("stroke", e=>e.event_type === "lectureUp" ? "#7fff78" : "#ff7878")
+    .attr("stroke", e=>getLectureEventColour(e))
     .attr("stroke-opacity", 0.5)
     .attr("stroke-dasharray", "4,2")
     .attr("stroke-width", 7);
@@ -198,7 +199,8 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
         .attr("height", 150)
         .attr("fill-opacity", 0.5);
 
-    plotPrognosis(svg, x, y, means, sds, grads, lectureBounds)
+    // plotPrognosis(svg, x, y, means, sds, grads, lectureBounds)
+    // plotPrognosisBox(svg, {"crowdcount": "-5", "leccentration": "+2"})
     
     svg.append("rect")
         .attr("width", width/15)
@@ -215,6 +217,19 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     svg.append("text").attr("x", width - width/20 + 15).attr("y", 4*height/20).text("crowd count").style("font-size", "15px").attr("alignment-baseline","middle")
 
     return svg.node();
+}
+
+const getLectureEventColour = (event) => {
+    if(event.event_type == "lectureUp") {
+        return "#7fff78"
+    } else if(event.event_type == "lectureDown") {
+        return "#ff7878"
+    } else if(event.event_type == "lectureSettled") {
+        return "#fc66ff"
+    }
+    else {
+        return "black"
+    }
 }
 
 export default plotMainGraph
