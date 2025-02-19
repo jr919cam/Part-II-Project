@@ -1,6 +1,11 @@
 import asyncio
 import time
 import json
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from structures import ConciseTimetable
 
 async def nodeStartSendLoop(percentageConcentrationSynopsis, wholeRoomStabilitySynopsis, leccentrationSynopsis, lectureBoundarySynopsis, nodeDf, startTimestamp, speed, ws):
     try:
@@ -53,7 +58,9 @@ async def handleLectureBoundaries(lectureBoundarySynopsis, reading, nodeDf, t, w
                     "eventType": "leccentration", 
                     "lecture": leccentrationSynopsis.lectureCount,
                     "leccentration": leccentrationSynopsis.leccentration, 
-                    "leccentrationSD": leccentrationSynopsis.getStdDev()
+                    "leccentrationSD": leccentrationSynopsis.getStdDev(),
+                    "ccPeriodMean": lectureBoundarySynopsis.ccPeriodMean,
+                    "ccPeriodSD": round((lectureBoundarySynopsis.ccM2/(lectureBoundarySynopsis.ccPeriodCount-1))**0.5)
                 }
             )))
             leccentrationSynopsis.reset()
@@ -62,7 +69,7 @@ async def handleLectureBoundaries(lectureBoundarySynopsis, reading, nodeDf, t, w
     if lectureBoundarySynopsis.hasEMAlectureSettled(reading, t):
         co2info["inLecture"] = True
         leccentrationSynopsis.reset()
-        await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureSettled"}))
+        await ws.send(json.dumps({"acp_ts":reading["acp_ts"], "type":"event", "eventType": "lectureSettled", "course": ConciseTimetable.getCourse(reading["acp_ts"])}))
 
     if lectureBoundarySynopsis.isEMALectureDownEvent(reading, t):
         if lectureBoundarySynopsis.wasLecture():
@@ -74,7 +81,9 @@ async def handleLectureBoundaries(lectureBoundarySynopsis, reading, nodeDf, t, w
                     "eventType": "leccentration", 
                     "lecture": leccentrationSynopsis.lectureCount,
                     "leccentration": leccentrationSynopsis.leccentration, 
-                    "leccentrationSD": leccentrationSynopsis.getStdDev()
+                    "leccentrationSD": leccentrationSynopsis.getStdDev(),
+                    "ccPeriodMean": lectureBoundarySynopsis.ccPeriodMean,
+                    "ccPeriodSD": round((lectureBoundarySynopsis.ccM2/(lectureBoundarySynopsis.ccPeriodCount-1))**0.5)
                 }
             )))
             leccentrationSynopsis.reset()

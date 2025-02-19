@@ -390,5 +390,7 @@ def main():
     assert ConciseTimetable.getCourse(1739874600) != 'other', 'not returning correctly'
     assert ConciseTimetable.getCourse(1739910600) == 'N/A', 'Does not handle empty case'
 
+    assert ConciseTimetable.getCourse(1738061100) == 'Further Human–Computer Interaction', 'fails for FHCI'
+
 if __name__ == '__main__':
     main()

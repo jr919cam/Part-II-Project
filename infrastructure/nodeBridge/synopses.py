@@ -93,6 +93,11 @@ class LectureBoundarySynopsis():
         self.isLectureEntering = False
         self.isLectureExiting = False
         self.inLecture = False
+
+        self.ccPeriodMean = 0
+        self.ccPeriodCount = 0
+        self.ccM2 = 0
+
         self.ccEMA = 0
         self.varEMA = 0
 
@@ -106,13 +111,18 @@ class LectureBoundarySynopsis():
         self.ccEMA = 0.05 * (nodeDf.loc[t]['crowdcount']) + (1-0.05) * self.ccEMA
         self.varEMA = 0.1 * np.sqrt((nodeDf.loc[t]['crowdcount'] - self.ccEMA)**2) + (1-0.1) * self.varEMA
 
+        self.ccPeriodCount += 1
+        delta = nodeDf.loc[t]['crowdcount'] - self.ccPeriodMean
+        self.ccPeriodMean += delta / self.ccPeriodCount
+        self.ccM2 += delta * (nodeDf.loc[t]['crowdcount'] - self.ccPeriodMean)
+
     def isEMALectureUpEvent(self, nodeReading: pd.Series, t: int)->bool:
         if t < 1:
             return False
         if self.timeSinceLastUpEvent >= 0 and self.timeSinceLastUpEvent < 10 * 60:
             self.timeSinceLastUpEvent += self.timeDelta
             return False
-        if (self.diffEMA * 13.5 / (np.log(nodeReading['crowdcount'] + 1) + 1)) < 1:
+        if (self.diffEMA * 14 / (np.log(nodeReading['crowdcount'] + 1) + 1)) < 1:
             return False
         self.timeSinceLastUpEvent = 0
         self.timeSinceLastDownEvent = -1
@@ -125,12 +135,15 @@ class LectureBoundarySynopsis():
         if not self.isLectureEntering and not self.isLectureExiting:
             return False
         print(self.varEMA)
-        if self.varEMA < 1.5:
+        if self.varEMA < 1.3:
             self.isLectureEntering = False
             self.isLectureExiting = False
             if nodeReading['crowdcount'] < 5:
                 return False
             self.inLecture = True
+            self.ccPeriodMean = 0
+            self.ccPeriodCount = 0
+            self.ccM2 = 0
             return True
         return False
 

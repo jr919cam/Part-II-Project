@@ -9,24 +9,6 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     const endTimeString = `${day}T${endTime}:00`;
     const end = new Date(endTimeString);
     const endTimeStamp = Math.floor(end.getTime() / 1000);
-
-    const lectureBounds = []
-    let prevBound = null
-    for(let i = 0; i < events.length; i++) {
-        if(events[i].event_type == "lectureUp" && prevBound != "lectureUp") {
-            lectureBounds.push([events[i].acp_ts, endTimeStamp])
-            prevBound = "lectureUp"
-        }
-        if(events[i].event_type == "lectureDown" && prevBound != "lectureDown") {
-            lectureBounds[lectureBounds.length-1][1] = events[i].acp_ts
-            prevBound = "lectureDown"
-        }
-    }
-    const means = [80, 85]
-
-    const sds = [10, 7]
-
-    const grads = [0.01, 0]
     
     const marginTop = 20;
     const marginRight = 50;
@@ -176,6 +158,12 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
     .attr("stroke-dasharray", "4,2")
     .attr("stroke-width", 7);
 
+    events.map(e => {
+        if(e.event_type == "lectureSettled") {
+            plotPrognosisBox(svg, x(e.acp_ts), {"course": e.course})
+        }
+    })
+
     svg.append("g")
     .attr("stroke", "black")
     .attr("stroke-opacity", 0.5)
@@ -200,7 +188,6 @@ const plotMainGraph = (data, events, barcodes, variance, sensor, height, width, 
         .attr("fill-opacity", 0.5);
 
     // plotPrognosis(svg, x, y, means, sds, grads, lectureBounds)
-    // plotPrognosisBox(svg, {"crowdcount": "-5", "leccentration": "+2"})
     
     svg.append("rect")
         .attr("width", width/15)

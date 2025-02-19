@@ -204,7 +204,7 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
             dataArrObj.seatHistoryArr = []
         }
         if(dataObject.eventType === "lectureSettled") {
-            dataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"lectureSettled"})
+            dataArrObj.eventArr.push({acp_ts: dataObject.acp_ts, event_type:"lectureSettled", course: dataObject.course})
             const lectureEventLi = document.createElement("li")
             lectureEventLi.textContent = `Lecture settled @ ${hours}:${minutes}:${seconds}`;
             lectureEvents?.appendChild(lectureEventLi);
@@ -220,7 +220,7 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
         if(dataObject.eventType === "leccentration") {
             const crowdcountPeriodTable = document.getElementById("crowdcountPeriodTableBody")
             const crowdcountPeriodTableRow = document.createElement("tr")
-            const tableValues = [`${(dataObject.lecture)}`, `${(dataObject.leccentration * 100).toFixed(1)}%`, ` ${(dataObject.leccentrationSD * 100).toFixed(1)}%`]
+            const tableValues = [`${(dataObject.lecture)}`, `${dataObject.ccPeriodMean.toFixed(1)}`, `${dataObject.ccPeriodSD.toFixed(1)}`,`${(dataObject.leccentration * 100).toFixed(1)}%`, ` ${(dataObject.leccentrationSD * 100).toFixed(1)}%`]
             tableValues.map((tableValue) => {
                 const crowdcountPeriodTableRowDatum = document.createElement("td")
                 crowdcountPeriodTableRowDatum.textContent = tableValue
