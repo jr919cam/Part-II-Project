@@ -2,14 +2,17 @@ import plotSeatDiagram from "/infrastructure/facentrate/plotters/plotSeatDiagram
 import plotMainGraph from "/infrastructure/facentrate/plotters/plotMainGraph.js";
 import plotSeatMetricsDiagram from "/infrastructure/facentrate/plotters/plotSeatMetricsDiagram.js";
 import plotStabilityGraph from "/infrastructure/facentrate/plotters/plotStabilityGraph.js";
+import plotConcentrationGraph from "/infrastructure/facentrate/plotters/plotConcentrationGraph.js";
 
 export const graphWidth = 1800;
 export const graphHeight = 600;
 
 const plotGraphs = (endTime, startTime, day, dataArrObj) => {
+    // console.log(dataArrObj.leccentrationArr)
 
     const oldChart = document.getElementById("chart")
-    const oldStabilityChart = document.getElementById("stabilityChart")
+    // const oldStabilityChart = document.getElementById("stabilityChart")
+    const oldConcetrationChart = document.getElementById("concentrationChart")
     const oldSeatMetricsDiagram = document.getElementById("seatMetricsDiagram")
     
     oldChart.replaceWith(
@@ -26,21 +29,31 @@ const plotGraphs = (endTime, startTime, day, dataArrObj) => {
             day,
         )
     );
-    oldStabilityChart.replaceWith(
-        plotStabilityGraph(
-            dataArrObj.wholeRoomStability,
+    oldConcetrationChart.replaceWith(
+        plotConcentrationGraph(
+            dataArrObj.leccentrationArr,
             graphHeight/2,
             graphWidth,
             startTime,
             endTime,
             day,
         )
-    );
+    )
+    // oldStabilityChart.replaceWith(
+    //     plotStabilityGraph(
+    //         dataArrObj.wholeRoomStability,
+    //         graphHeight/2,
+    //         graphWidth,
+    //         startTime,
+    //         endTime,
+    //         day,
+    //     )
+    // );
     oldSeatMetricsDiagram.replaceWith(
         plotSeatMetricsDiagram(
             dataArrObj.percentageConcentration,
             dataArrObj.concentrationEdges,
-            dataArrObj.wholeRoomAvgOccupancy,
+            dataArrObj.leccentration,
             dataArrObj.timeElapsed
         )
     );
@@ -57,11 +70,12 @@ const dataArrObj = {
     varianceArr:[],
     seatHistoryArr:[],
     sensorArr:[],
+    leccentrationArr:[],
     percentageConcentration: null,
     concentrationEdges: null,
     wholeRoomStability:{seatsOccupiedDiffCountTotal: 0, seatsOccupiedDiffCount: []},
     diffCountEMA: 0,
-    wholeRoomAvgOccupancy: 0,
+    leccentration: 0,
     isVisible:false, 
     wasVisible:false,
     timeElapsed: 0
@@ -116,11 +130,11 @@ const wsOnopen = (dataArrObj, seat) => {
     dataArrObj.varianceArr = []
     dataArrObj.seatHistoryArr = [],
     dataArrObj.sensorArr = [],
+    dataArrObj.leccentrationArr = [],
     dataArrObj.percentageConcentration = null,
     dataArrObj.concentrationEdges = seat ? 0 : null,
     dataArrObj.wholeRoomStability = {seatsOccupiedDiffCountTotal: 0, seatsOccupiedDiffCount: []},
     dataArrObj.diffCountEMA = 0,
-    dataArrObj.wholeRoomAvgOccupancy = 0,
     dataArrObj.isVisible = false,
     dataArrObj.wasVisible = false,
     dataArrObj.timeElapsed = 0
@@ -149,6 +163,7 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
                     dataArrObj.seatHistoryArr.push(seat);
                 }
             });
+
             seatDiagramContainer.replaceChild(plotSeatDiagram(dataObject.payload_cooked.seats_occupied, dataArrObj.seatHistoryArr), seatDiagramContainer.firstChild)
             
             const prevDiffCount = dataArrObj.wholeRoomStability.seatsOccupiedDiffCount[dataArrObj.wholeRoomStability.seatsOccupiedDiffCount.length-1] ?? {value: 0}
@@ -156,7 +171,7 @@ const wsOnmessage = (event, dataArrObj, seat, startTimeTS, form) => {
             dataArrObj.diffCountEMA = (1/12) * Math.pow(diffCountValue, 2) + (11/12) * dataArrObj.diffCountEMA
             dataArrObj.wholeRoomStability.seatsOccupiedDiffCount.push({value: diffCountValue, acp_ts: +dataObject.acp_ts, ema: dataArrObj.diffCountEMA})
             dataArrObj.wholeRoomStability.seatsOccupiedDiffCountTotal = dataObject.payload_cooked.seatsOccupiedDiffCountTotal
-            dataArrObj.wholeRoomAvgOccupancy = dataObject.payload_cooked.roomAvgOccupancy
+            dataArrObj.leccentrationArr.push({value: dataObject.payload_cooked.leccentration, sd: dataObject.payload_cooked.leccentrationSD, acp_ts: +dataObject.acp_ts})
 
             dataArrObj.timeElapsed = +dataObject.acp_ts - startTimeTS/1000
 

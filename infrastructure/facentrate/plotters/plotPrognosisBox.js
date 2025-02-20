@@ -1,7 +1,7 @@
 const plotPrognosisBox = (svg, x, metrics) => {
     const textWidth = d3.max(Object.keys(metrics), metric => {
-        return metrics[metric].length
-    }) * 15
+        return metrics[metric].length  + metric.length
+    }) * 10
 
     const rect = svg.append("rect")
     .attr("y", 10)

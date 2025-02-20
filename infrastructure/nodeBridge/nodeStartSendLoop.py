@@ -38,7 +38,8 @@ async def sendReading(reading, percentageConcentrationSynopsis, wholeRoomStabili
             "percent_concentration": percentageConcentrationSynopsis.avg, 
             "seatsOccupiedDiffCountTotal":wholeRoomStabilitySynopsis.seatsOccupiedDiffCountTotal,
             "seatsOccupiedDiffCount":wholeRoomStabilitySynopsis.seatsOccupiedDiffCount,
-            "roomAvgOccupancy": leccentrationSynopsis.leccentration
+            "leccentration": leccentrationSynopsis.leccentration,
+            "leccentrationSD": leccentrationSynopsis.getStdDev()
         },
         "type":"reading", 
         "readingType":"node"
